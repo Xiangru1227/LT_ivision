@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package iVisionCommunication;
+
+// Command method identifier
+enum MethodId {
+  Connect = 0;
+  Broadcast = 1;
+  MoveBy = 2;
+  MoveTo = 3;
+  SetPSDLocked = 4;
+  SetPSDUnlocked = 5;
+  GetPSDLocked = 6;
+  SetFlashOffset = 7;
+  GetFlashOffset = 8;
+  SetFlashDuration = 9;
+  GetFlashDuration = 10;
+  SetFlashBrightness = 11;
+  GetFlashBrightness = 12;
+  SetFlashInTKOn = 13;
+  SetFlashInTKOff = 14;
+  GetFlashInTK = 15;
+  SetCamModeOn = 16;
+  SetCamModeOff = 17;
+  StartSpiral = 18;
+  StopSpiral = 19;
+  SetSpiral = 20;
+}
+
+// enumeration to define operation mode
+enum OperationMode {
+  Idle = 0;
+  Servo = 1;
+  Track = 2;
+  TrackIdle = 3;
+  IndexSearch = 4;
+  SpiralSearch = 5;
+  CameraSearch = 6;
+}
+
+// Message to command the FW
+message BasicCommands {
+  MethodId method = 1;
+  repeated float payload_parameters = 2;
+}
+
+// Message to receive the acknowledgement
+message Acknowledgement {
+  MethodId method = 1;
+  bool success = 2;
+  string parameter_string = 3;
+  repeated float parameter_float = 4;
+}
+
+message TrackerData {
+  fixed32 heart_beat = 1;
+  float el_angle = 2;
+  float az_angle = 3;
+  float distance = 4;
+  bool locked = 5;
+  OperationMode op_mode = 6;
+  bool img_flag = 7;
+  bool ref_mode = 8;
+}

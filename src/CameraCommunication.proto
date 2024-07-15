@@ -1,0 +1,68 @@
+syntax = "proto3";
+package CameraCommunication;
+
+enum MethodId
+{
+	CalibrationParameters = 0;
+	StartVideo = 1;
+	StopVideo = 2;
+	GetExposure = 3;
+	SetExposure = 4;
+	GetDigitalGain = 5;
+	SetDigitalGain = 6;
+	SetROIVideoStream = 7;
+	BroadcastCamera = 8;
+	GetAnalogGain = 9;
+	SetAnalogGain = 10;
+	GetFPS = 11;
+	SetFPS = 12;
+	GetSensorResolution = 13;
+	SetSensorResolution = 14;
+	GetDisplayResolution = 15;
+	SetDisplayResolution = 16;
+	SetOpMode = 17;
+	NextSMR = 18;
+	UserClick = 19;
+	GetVersionNumber = 20;
+	// TODO: Add any other necessary methods
+}
+
+enum IVisionOpMode {
+	Idle = 0;
+	SingleSMR = 1;
+	MultiSMR = 2;
+	ManualSMR = 3;
+	Teach2Drive = 4;
+	Shake2Drive = 5;
+	CamCalibration = 6;
+	TrackCalibration = 7;
+}
+
+message Commands
+{
+	MethodId method = 1;
+	repeated float parameters = 2;
+	IVisionOpMode opmode = 3;
+}
+
+
+message Acknowledgement
+{
+	MethodId method = 1;
+	bool success = 2;
+	repeated float parameters = 3;
+	string parameter_string = 4;
+}
+
+message SMRData
+{
+	repeated float x = 1;
+	repeated float y = 2;
+}
+
+message VideoData
+{
+	bytes image = 1;
+	SMRData smr = 2;
+	IVisionOpMode opmode = 3;
+}
