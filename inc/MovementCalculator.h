@@ -52,15 +52,18 @@ public:
 	bool loadParallaxCalibrationFile();
 	bool filterCalibData();
 
+	std::vector<CalibrationPoint>& getParallaxCalibPoints();
+
 	cv::Point2f getLaserPoint(float searchDistance);
 
 	float getLaserDistance(cv::Point2f imgAngles);
 
-	Movement getMovement(float trkAz, float trkEl, float smrImgAz, float smrImgEl, float searchDistance, bool smrHitByLaser, bool back_cam);
+	Movement getMovement(float trkAz, float trkEl, float smrImgAz, float smrImgEl, float searchDistance, bool smrHitByLaser, bool back_cam, cv::Point2f pixelAngle);
 
 	bool distanceNeedsCalibration(float distance);
 	iVisionClient visionclient;
 	bool SpiralStart = false;
+	const double degrees_per_pixel = 0.004486532723144;
 private:
 
 	cv::Point2f interpolateCalibPoints(CalibrationPoint cp1, CalibrationPoint cp2, float searchDistance);

@@ -46,8 +46,8 @@ SMRData::~SMRData() {
 }
 
 void SMRData::setImgCoordinates(float x, float y, cv::Size imgRes) {
-	imgX = x / imgRes.width;
-	imgY = y / imgRes.height;
+	imgX = x;
+	imgY = y;
 }
 
 //checks that angles are close and size is roughly similar
@@ -63,12 +63,12 @@ float SMRData::validDistance(SMRData d, cv::Point2f pixelAngle) {
 	float azDist = std::abs(az - d.az);
 	float elDist = std::abs(el - d.el);
 	float sizeRatio = imgA / d.imgA;
-	//std::cout << imgA << " " << d.getImgPix() << " " << azDist << " " << elDist << std::endl;
 	float maxDim = std::max(imgW, imgH);
+	std::cout << "Pixel Angle: " << pixelAngle << ", Size Ratio: " << sizeRatio << std::endl;
 	float azThresh = 4.0f * maxDim * pixelAngle.x;
 	float elThresh = 4.0f * maxDim * pixelAngle.y;
-	if (sizeRatio > .5f && sizeRatio < 2.0f && azDist < azThresh && elDist < elThresh)
-	//std::cout << "AZ Thresh: " << azThresh << ", EL Thresh: " << elThresh << ", Max Dim: " << maxDim << std::endl;
+	if (sizeRatio > .5f && sizeRatio < 2.0f)
+		//std::cout << "AZ Thresh: " << azThresh << ", EL Thresh: " << elThresh << ", Max Dim: " << maxDim << std::endl;
 		return azDist * azDist + elDist * elDist;
 	return -1;
 }

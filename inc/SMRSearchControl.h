@@ -47,6 +47,7 @@ private:
 	//maximum value for the search parameter, corresponds to a location on the target line near the edge of the image)
 	float minSearchDistance;
 	float maxSearchDistance;
+	bool isFirstIteration;
 
 	//int targetMissingCount;
 	//bool shouldUseRed;
@@ -59,5 +60,5 @@ private:
 	bool dist_dec = false;
 	float observedLaserDistance;
 
-	void updateSearchDistance(float estimatedDistance, bool smrClose, bool dist_inc = false, bool dist_dec = false);
+	void updateSearchDistance(float estimatedDistance, bool smrClose);
 };

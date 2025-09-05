@@ -85,12 +85,13 @@ enum MethodId : int {
   StartSpiral = 18,
   StopSpiral = 19,
   SetSpiral = 20,
+  SetLEDState = 21,
   MethodId_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
   MethodId_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
 bool MethodId_IsValid(int value);
 constexpr MethodId MethodId_MIN = Connect;
-constexpr MethodId MethodId_MAX = SetSpiral;
+constexpr MethodId MethodId_MAX = SetLEDState;
 constexpr int MethodId_ARRAYSIZE = MethodId_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* MethodId_descriptor();
@@ -639,6 +640,11 @@ class TrackerData final :
     kLockedFieldNumber = 5,
     kImgFlagFieldNumber = 7,
     kRefModeFieldNumber = 8,
+    kJogElAngleFieldNumber = 9,
+    kJogAzAngleFieldNumber = 10,
+    kJogDistanceFieldNumber = 11,
+    kJogHbFieldNumber = 12,
+    kDistanceCommandFieldNumber = 13,
   };
   // fixed32 heart_beat = 1;
   void clear_heart_beat();
@@ -712,6 +718,51 @@ class TrackerData final :
   void _internal_set_ref_mode(bool value);
   public:
 
+  // float jog_el_angle = 9;
+  void clear_jog_el_angle();
+  float jog_el_angle() const;
+  void set_jog_el_angle(float value);
+  private:
+  float _internal_jog_el_angle() const;
+  void _internal_set_jog_el_angle(float value);
+  public:
+
+  // float jog_az_angle = 10;
+  void clear_jog_az_angle();
+  float jog_az_angle() const;
+  void set_jog_az_angle(float value);
+  private:
+  float _internal_jog_az_angle() const;
+  void _internal_set_jog_az_angle(float value);
+  public:
+
+  // float jog_distance = 11;
+  void clear_jog_distance();
+  float jog_distance() const;
+  void set_jog_distance(float value);
+  private:
+  float _internal_jog_distance() const;
+  void _internal_set_jog_distance(float value);
+  public:
+
+  // fixed32 jog_hb = 12;
+  void clear_jog_hb();
+  uint32_t jog_hb() const;
+  void set_jog_hb(uint32_t value);
+  private:
+  uint32_t _internal_jog_hb() const;
+  void _internal_set_jog_hb(uint32_t value);
+  public:
+
+  // float distance_command = 13;
+  void clear_distance_command();
+  float distance_command() const;
+  void set_distance_command(float value);
+  private:
+  float _internal_distance_command() const;
+  void _internal_set_distance_command(float value);
+  public:
+
   // @@protoc_insertion_point(class_scope:iVisionCommunication.TrackerData)
  private:
   class _Internal;
@@ -728,6 +779,11 @@ class TrackerData final :
     bool locked_;
     bool img_flag_;
     bool ref_mode_;
+    float jog_el_angle_;
+    float jog_az_angle_;
+    float jog_distance_;
+    uint32_t jog_hb_;
+    float distance_command_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1036,6 +1092,26 @@ inline void TrackerData::set_distance(float value) {
   // @@protoc_insertion_point(field_set:iVisionCommunication.TrackerData.distance)
 }
 
+// float distance_command = 13;
+inline void TrackerData::clear_distance_command() {
+  _impl_.distance_command_ = 0;
+}
+inline float TrackerData::_internal_distance_command() const {
+  return _impl_.distance_command_;
+}
+inline float TrackerData::distance_command() const {
+  // @@protoc_insertion_point(field_get:iVisionCommunication.TrackerData.distance_command)
+  return _internal_distance_command();
+}
+inline void TrackerData::_internal_set_distance_command(float value) {
+  
+  _impl_.distance_command_ = value;
+}
+inline void TrackerData::set_distance_command(float value) {
+  _internal_set_distance_command(value);
+  // @@protoc_insertion_point(field_set:iVisionCommunication.TrackerData.distance_command)
+}
+
 // bool locked = 5;
 inline void TrackerData::clear_locked() {
   _impl_.locked_ = false;
@@ -1114,6 +1190,86 @@ inline void TrackerData::_internal_set_ref_mode(bool value) {
 inline void TrackerData::set_ref_mode(bool value) {
   _internal_set_ref_mode(value);
   // @@protoc_insertion_point(field_set:iVisionCommunication.TrackerData.ref_mode)
+}
+
+// float jog_el_angle = 9;
+inline void TrackerData::clear_jog_el_angle() {
+  _impl_.jog_el_angle_ = 0;
+}
+inline float TrackerData::_internal_jog_el_angle() const {
+  return _impl_.jog_el_angle_;
+}
+inline float TrackerData::jog_el_angle() const {
+  // @@protoc_insertion_point(field_get:iVisionCommunication.TrackerData.jog_el_angle)
+  return _internal_jog_el_angle();
+}
+inline void TrackerData::_internal_set_jog_el_angle(float value) {
+  
+  _impl_.jog_el_angle_ = value;
+}
+inline void TrackerData::set_jog_el_angle(float value) {
+  _internal_set_jog_el_angle(value);
+  // @@protoc_insertion_point(field_set:iVisionCommunication.TrackerData.jog_el_angle)
+}
+
+// float jog_az_angle = 10;
+inline void TrackerData::clear_jog_az_angle() {
+  _impl_.jog_az_angle_ = 0;
+}
+inline float TrackerData::_internal_jog_az_angle() const {
+  return _impl_.jog_az_angle_;
+}
+inline float TrackerData::jog_az_angle() const {
+  // @@protoc_insertion_point(field_get:iVisionCommunication.TrackerData.jog_az_angle)
+  return _internal_jog_az_angle();
+}
+inline void TrackerData::_internal_set_jog_az_angle(float value) {
+  
+  _impl_.jog_az_angle_ = value;
+}
+inline void TrackerData::set_jog_az_angle(float value) {
+  _internal_set_jog_az_angle(value);
+  // @@protoc_insertion_point(field_set:iVisionCommunication.TrackerData.jog_az_angle)
+}
+
+// float jog_distance = 11;
+inline void TrackerData::clear_jog_distance() {
+  _impl_.jog_distance_ = 0;
+}
+inline float TrackerData::_internal_jog_distance() const {
+  return _impl_.jog_distance_;
+}
+inline float TrackerData::jog_distance() const {
+  // @@protoc_insertion_point(field_get:iVisionCommunication.TrackerData.jog_distance)
+  return _internal_jog_distance();
+}
+inline void TrackerData::_internal_set_jog_distance(float value) {
+  
+  _impl_.jog_distance_ = value;
+}
+inline void TrackerData::set_jog_distance(float value) {
+  _internal_set_jog_distance(value);
+  // @@protoc_insertion_point(field_set:iVisionCommunication.TrackerData.jog_distance)
+}
+
+// fixed32 jog_hb = 12;
+inline void TrackerData::clear_jog_hb() {
+  _impl_.jog_hb_ = 0u;
+}
+inline uint32_t TrackerData::_internal_jog_hb() const {
+  return _impl_.jog_hb_;
+}
+inline uint32_t TrackerData::jog_hb() const {
+  // @@protoc_insertion_point(field_get:iVisionCommunication.TrackerData.jog_hb)
+  return _internal_jog_hb();
+}
+inline void TrackerData::_internal_set_jog_hb(uint32_t value) {
+  
+  _impl_.jog_hb_ = value;
+}
+inline void TrackerData::set_jog_hb(uint32_t value) {
+  _internal_set_jog_hb(value);
+  // @@protoc_insertion_point(field_set:iVisionCommunication.TrackerData.jog_hb)
 }
 
 #ifdef __GNUC__

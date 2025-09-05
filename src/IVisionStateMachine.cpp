@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <stdlib.h>
+#include <fstream>
 
 IVisionStateMachine::IVisionStateMachine() {
 
@@ -59,6 +60,7 @@ IVisionStateMachine::~IVisionStateMachine() {
 	delete fw;
 
 }
+
 
 //set up modules that will be used by states
 bool IVisionStateMachine::initialize(StateEnum startState, bool startDetectPlus, bool useFirmware, std::string fw_ip) {
@@ -128,7 +130,7 @@ bool IVisionStateMachine::updateState() {
 
 	//check temperature
 	//float currentTemperature = pwrManager.getTemperature();
-	//std::cout << "Current temperature: " << currentTemperature << std::endl;
+	//std::cout << "Update State Func" << currentTemperature << std::endl;
 
 	//if changing state, leave current state
 	if (nextState != currentState) {
@@ -203,6 +205,24 @@ void IVisionStateMachine::endVideoThread() {
 	}
 }
 
+//grab full res jpeg image and send to SDK
+void IVisionStateMachine::sendFullResImages() {
+	char* buffer;
+	unsigned long size;
+	// std::cout << "size: " << size << std::endl;
+	if (!cam->grabNextProcessJpeg(&buffer, size)) {
+		std::cout << "[ERROR] failed to grab image" << std::endl;
+		return;
+	}
+	if (size != 0) {
+		std::vector<float> params = std::vector<float>();
+		std::vector<std::string> msg = {"image_data"};
+		// std::cout << "Sending full res image acknowledgement" << std::endl;
+		if (!sdk.sendAck(CameraCommunication::GetFullResolutionImage, true, params, msg, buffer, size)){
+			std::cout << "[ERROR] Send full res jpeg image failed." << std::endl;
+		}
+	}
+}
 
 //send video images in separate thread
 void IVisionStateMachine::SendImages(IVisionStateMachine* iv) {
@@ -214,31 +234,42 @@ void IVisionStateMachine::SendImages(IVisionStateMachine* iv) {
 void IVisionStateMachine::sendImages() {
 
 	while (runVideo) {
-
 		char* buffer;
 		unsigned long size;
 		if (!cam->grabNextJpeg(&buffer, size)) {
 			continue;
 		}
+		uint64_t Timestamp = cam->getTimeStamp();
 
 		std::vector<ImagePoint> smrs;
 		//TODO: get SMR list from smart camera
 		std::vector<SMRData> observedSMRs = cam->getTrackedSMRs();
-		uint64_t Timestamp = cam->getTimeStamp();
-		std::ofstream os("TimeStamp.txt", std::ios::app);
-		os << "Timestamp in St Ma  " << Timestamp <<" nano seconds\n";
-		//std::cout << observedSMRs.size() << std::endl;
+		
+		if (!cam->iProbeDetection()) {
+			// std::cout << "Failed to update iProbe centroids." << std::endl;
+		}
+		auto detectedCentroids = cam->getCentroids();
+		// std::cout << "iProbe centroid size: " << detectedCentroids.size() << std::endl;
+
+		// std::ofstream os("TimeStamp.txt", std::ios::app);
+		// os << "Timestamp in St Ma  " << Timestamp <<" nano seconds\n";
+		//std::cout << "observedSMRs sent to SDK " << observedSMRs.size() << std::endl;
 		for (int i = 0; i < observedSMRs.size(); i++) {
 			ImagePoint ip;
-			ip.x = observedSMRs[i].getImgX();
-			ip.y = observedSMRs[i].getImgY();
-			//std::cout << ip.x << ", " << ip.y << std::endl;
+			ip.x = observedSMRs[i].getImgX() / 3264.0; //hardcoed for now
+			ip.y = observedSMRs[i].getImgY() / 2464.0; //hardcoed for now
+			//std::cout << "SDK SMR coordinates: "<< ip.x << ", " << ip.y << std::endl;
 			smrs.push_back(ip);
 		}
 		if (size != 0) {
-			if (!sdk.sendImageBuffer(buffer, size, smrs, Timestamp)) {
+			// std::cout << "Timestamp: " << Timestamp << std::endl;
+			
+			if (!sdk.sendImageBuffer(buffer, size, smrs, detectedCentroids, Timestamp)) {
+			//if (!sdk.sendImageBuffer(buffer, size, smrs)) {
 				std::cout << "Send video image failed." << std::endl;
+				// std::cout << buffer << std::endl;
 			}
+			cam->setCentroids(std::vector<cv::Point2f>());
 		}
 	}
 }
@@ -298,12 +329,12 @@ bool IVisionStateMachine::handleSDKControls(ControlState state) {
 
 	if (flags.change_iv_state) {
 		nextState = state.iv_state;
-		sdk.sendAck(CameraCommunication::SetOpMode, true);
+		//sdk.sendAck(CameraCommunication::SetOpMode, true);
 	}
 
 	//send calibration data to SDK
 	if (flags.get_calibration_data) {
-		sdk.sendAck(CameraCommunication::CalibrationParameters, true, std::vector<float>());
+		//sdk.sendAck(CameraCommunication::CalibrationParameters, true, std::vector<float>());
 	}
 
 	//get current camera properties
@@ -325,11 +356,33 @@ bool IVisionStateMachine::handleSDKControls(ControlState state) {
 	if (flags.get_video_roi) {
 		//sdk.sendAck(CameraCommunication::GetROIVideoStream, true, CreateParamList(prop.video_roi_x, prop.video_roi_y, prop.video_roi_width, prop.video_roi_height));
 	}
+	if (flags.get_FC_in_FB) {
+		std::cout << "sending extrinsic matrix" << std::endl;
+		auto fc_in_fb = cam->getCameraExtrinsicMat();
+		sdk.sendAck(CameraCommunication::GetFCinFB, true, 
+			CreateParamList((float)fc_in_fb.at<double>(0, 0), 
+							(float)fc_in_fb.at<double>(0, 1), 
+							(float)fc_in_fb.at<double>(0, 2),
+							(float)fc_in_fb.at<double>(1, 0), 
+							(float)fc_in_fb.at<double>(1, 1), 
+							(float)fc_in_fb.at<double>(1, 2),
+							(float)fc_in_fb.at<double>(2, 0), 
+							(float)fc_in_fb.at<double>(2, 1), 
+							(float)fc_in_fb.at<double>(2, 2)));
+	}
+	if (flags.get_int_mat) {
+		std::cout << "sending intrinsic matrix" << std::endl;
+		auto cam_mat = cam->getCameraIntrinsicMat();
+		sdk.sendAck(CameraCommunication::GetCameraIntrinsicMatrix, true, 
+			CreateParamList((float)cam_mat.at<double>(0, 0), 
+							(float)cam_mat.at<double>(1, 1), 
+							(float)cam_mat.at<double>(0, 2),
+							(float)cam_mat.at<double>(1, 2)));
+	}
 
-	//update desired camera propertes
 	prop.exposure = (flags.set_exposure) ? (double)state.exposure : prop.exposure;
-	prop.analog_gain = (flags.set_analog_gain) ? state.analog_gain : prop.analog_gain;
 	prop.digital_gain = (flags.set_digital_gain) ? state.digital_gain : prop.digital_gain;
+	prop.analog_gain = (flags.set_analog_gain) ? state.analog_gain : prop.analog_gain;
 	prop.fps = (flags.set_fps) ? (int)state.fps : prop.fps;
 	prop.res_x = (flags.set_sensor_resolution) ? (unsigned int)state.sensor_resolution.width : prop.res_x;
 	prop.res_y = (flags.set_sensor_resolution) ? (unsigned int)state.sensor_resolution.height : prop.res_y;
@@ -339,11 +392,45 @@ bool IVisionStateMachine::handleSDKControls(ControlState state) {
 	prop.video_roi_y = (flags.set_video_roi) ? state.roi.y : prop.video_roi_y;
 	prop.video_roi_width = (flags.set_video_roi) ? state.roi.width : prop.video_roi_width;
 	prop.video_roi_height = (flags.set_video_roi) ? state.roi.height : prop.video_roi_height;
+
+	if (flags.send_full_res_img) {
+		// std::cout << "Handling send full res image request." << std::endl;
+		if (cam->running()){
+			prop.exposure = 13.0;
+			prop.digital_gain = 1.0;
+			prop.analog_gain = 1.0;
+			fw->setLedAlwaysOn(true);
+			sendFullResImages();
+		}
+	}
+
+	// enter/exit iProbe mode
+	if (flags.enter_iprobe) {
+		if (!cam->getIprobeMode()) {
+			cam->setIprobeMode(true);
+			exposureBuf = prop.exposure;
+			digitalGainBuf = prop.digital_gain;
+			analogGainBuf = prop.analog_gain;
+			prop.exposure = 10.0;
+			prop.digital_gain = 1.0;
+			prop.analog_gain = 1.0;
+		}
+	}
+	if (flags.exit_iprobe) {																																																															
+		if (cam->getIprobeMode()) {
+			cam->setIprobeMode(false);
+			prop.exposure = exposureBuf;
+			prop.digital_gain = digitalGainBuf;
+			prop.analog_gain = analogGainBuf;
+		}
+	}
+	// std::cout << "exposure: " << prop.exposure << std::endl;
+
 	//send changes to smart camera
 	bool success = cam->setProperties(prop);
 
 	//determine if camera has changed properties, if so, restart camera to apply update
-	bool changed = flags.set_exposure || flags.set_analog_gain || flags.set_digital_gain || flags.set_fps || flags.set_sensor_resolution || flags.set_display_resolution || flags.set_video_roi;
+	bool changed = flags.set_exposure || flags.set_analog_gain || flags.set_digital_gain || flags.set_fps || flags.set_sensor_resolution || flags.set_display_resolution || flags.set_video_roi || flags.enter_iprobe || flags.exit_iprobe || flags.send_full_res_img;
 	if (success && changed) {
 		success = resetVideo();
 	}
@@ -375,27 +462,36 @@ bool IVisionStateMachine::handleSDKControls(ControlState state) {
 		if (success) {
 			startVideoThread();
 		}
-		sdk.sendAck(CameraCommunication::StartVideo, success);
+		//sdk.sendAck(CameraCommunication::StartVideo, success);
 	}
 	else if (flags.stop_video) {
 		endVideoThread();
 		//bool success = cam.stopVideo();
 		bool success = true;
-		sdk.sendAck(CameraCommunication::StopVideo, success);
+		//sdk.sendAck(CameraCommunication::StopVideo, success);
 	}
 
-	if(flags.get_version_number){
-		std::string msg;
-		msg.append(std::to_string(MAJOR_REVISION));
-		msg.append(".");
-		msg.append(std::to_string(MINOR_REVISION));
-		msg.append(" : ");
-		msg.append(__TIME__);
-		msg.append(" / ");
-		msg.append(__DATE__);
-
-		sdk.sendAck(CameraCommunication::GetVersionNumber, true, std::vector<float>(), CreateMsgList(msg));
+	if (flags.outdoor_exp){
+		cam->setOutdoorExp();
+		std::cout << "Setting exposure mode to outdoor iVisionComm" << std::endl;
 	}
+	else if (flags.indoor_exp){
+		cam->setIndoorExp();
+		std::cout << "Setting exposure mode to indoor iVisionComm" << std::endl;
+	}
+
+	// if(flags.get_version_number){
+	// 	std::string msg;
+	// 	msg.append(std::to_string(MAJOR_REVISION));
+	// 	msg.append(".");
+	// 	msg.append(std::to_string(MINOR_REVISION));
+	// 	msg.append(" : ");
+	// 	msg.append(__TIME__);
+	// 	msg.append(" / ");
+	// 	msg.append(__DATE__);
+
+	// 	sdk.sendAck(CameraCommunication::GetVersionNumber, true, std::vector<float>(), CreateMsgList(msg));
+	// }
 	return true;
 }
 
@@ -415,18 +511,34 @@ bool IVisionStateMachine::handleSDKControls(ControlState state) {
 
 //   return return_status;
 // }
+
+
 //add parameters to list to send in acknowledgement to SDK
-std::vector<float> IVisionStateMachine::CreateParamList(float param1, float param2, float param3, float param4) {
-	std::vector<float> list;
-	list.push_back(param1);
-	if (param2 >= 0)
-		list.push_back(param2);
-	if (param3 >= 0)
-		list.push_back(param3);
-	if (param4 >= 0)
-		list.push_back(param4);
-	return list;
+// std::vector<float> IVisionStateMachine::CreateParamList(float param1, float param2, float param3, float param4) {
+// 	std::vector<float> list;
+// 	list.push_back(param1);
+// 	if (param2 >= 0)
+// 		list.push_back(param2);
+// 	if (param3 >= 0)
+// 		list.push_back(param3);
+// 	if (param4 >= 0)
+// 		list.push_back(param4);
+// 	return list;
+// }
+std::vector<float> IVisionStateMachine::CreateParamList(float param1, float param2, float param3, float param4, float param5, float param6, float param7, float param8, float param9) {
+    std::vector<float> list;
+    if (!std::isnan(param1)) list.push_back(param1);
+    if (!std::isnan(param2)) list.push_back(param2);
+    if (!std::isnan(param3)) list.push_back(param3);
+    if (!std::isnan(param4)) list.push_back(param4);
+    if (!std::isnan(param5)) list.push_back(param5);
+    if (!std::isnan(param6)) list.push_back(param6);
+    if (!std::isnan(param7)) list.push_back(param7);
+    if (!std::isnan(param8)) list.push_back(param8);
+    if (!std::isnan(param9)) list.push_back(param9);
+    return list;
 }
+
 
 //string param to send string to sdk
 std::vector<std::string> IVisionStateMachine::CreateMsgList(std::string message1) {
@@ -444,6 +556,7 @@ bool IVisionStateMachine::resetVideo() {
 	endVideoThread();
 	endDetectThread();
 	if (cam->stopVideo()) {
+		// std::this_thread::sleep_for(std::chrono::milliseconds(300));
 		if (cam->startVideo()) {
 			if (wasStreaming)
 				startVideoThread();

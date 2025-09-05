@@ -29,6 +29,8 @@ struct TrackerInfo
     bool imgTaken;
 	iVisionCommunication::OperationMode trk_op_mode;
 	bool refMode;
+	float distance_command;
+	int jog_heartBeat;
 };
 
 //since the camera has a rolling shutter, the tracker can be at different angles when the top and bottom of the image are captured
@@ -57,6 +59,7 @@ public:
 	bool sendMoveTo(float x, float y, float radius = 0.0f);
 	bool SetSpiralSearch(float x, float y);
 	bool StartSearch(float dist, float freq);
+	bool SpiralInProgress = false;
 	bool StopSearch();
 	bool makeStill();
 	std::atomic<bool> move_flag{false};
@@ -65,6 +68,7 @@ public:
 	bool getPSDLockFlag() { return psdLocked; }
 	bool setFlashInTK(bool flash);
 	bool setCamMode(bool on);
+	bool setLedAlwaysOn(bool on);
 
     //set flash configuration
 	bool setFlashOffset(float offset);
@@ -116,7 +120,17 @@ private:
 	std::string fw_ip_addr;
 
 	int smrStableCount;
-	bool SpiralInProgress = false;
+	int last_jog_hb;
+	// Circular buffer to store past AZ & EL values
+	std::vector<std::pair<float, float>> azElBuffer;
+	std::vector<std::chrono::steady_clock::time_point> timeBuffer;
+	// Constants
+	const float AZ_THRESHOLD = 1.0f;  // Allowed azimuth variation
+	const float EL_THRESHOLD = 1.0f;  // Allowed elevation variation
+	const int STABLE_TIME_MS = 250;   // Stability time in milliseconds
+	const int SAMPLE_RATE = 1000;     // Data rate in Hz
+	const int REQUIRED_SAMPLES = (STABLE_TIME_MS * SAMPLE_RATE) / 1000;  // 500 samples for 500ms
+
 
     std::mutex dataLock;
     TrackerInfo lastData, imgData, imgData2;
@@ -124,6 +138,7 @@ private:
 	int print_cnt = 0;
 	float imgAzSlope, imgElSlope;
 
+	bool tracker_is_Still;
 	float flashOffset, flashDuration, flashBrightness;
 	bool psdLocked, flashInTK;
 

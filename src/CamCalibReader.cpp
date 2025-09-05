@@ -104,6 +104,18 @@ int CalibHandle::parseCalibFile() {
 	cData.camCalib.dist_p2 = jsonReader["Dist_Coeff"]["P2"].asDouble();
 	cData.camCalib.dist_k3 = jsonReader["Dist_Coeff"]["K3"].asDouble();
 
+	if (jsonReader["iProbe_info"].isMember("FC_in_FB") && jsonReader["iProbe_info"]["FC_in_FB"].isArray()) {
+		for (int i = 0; i < 3; ++i) {
+			if (jsonReader["iProbe_info"]["FC_in_FB"][i].isArray()) {
+				for (int j = 0; j < 3; ++j) {
+					cData.FC_in_FB.at<double>(i, j) = jsonReader["iProbe_info"]["FC_in_FB"][i][j].asDouble();
+				}
+			}
+		}
+	} else {
+		cData.FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
+	}
+
 	//Image Processing threshold setting from config file
 	if (jsonReader["Product_Info"].isMember("Bright_Threshold")) {
 		cData.bright_threshold = (uint8_t)jsonReader["Product_Info"]["Bright_Threshold"].asUInt();
@@ -203,6 +215,45 @@ int CalibHandle::parseCalibFile() {
 		cData.cam_auto_calib = false;
 	}
 
+	//auto flash adjust factor
+	if (jsonReader["Product_Info"].isMember("auto_flash_adjust_factor")) {
+		cData.auto_flash_adjust_factor = jsonReader["Product_Info"]["auto_flash_adjust_factor"].asFloat();
+	}
+	else {
+		cData.auto_flash_adjust_factor = 0.5f;
+	}
+
+	//target intensity for auto exposure
+	if (jsonReader["Product_Info"].isMember("target_intensity_for_auto_exp")) {
+		cData.target_intensity_for_auto_exp = jsonReader["Product_Info"]["target_intensity_for_auto_exp"].asFloat();
+	}
+	else {
+		cData.target_intensity_for_auto_exp = 128.0f;
+	}
+
+	//auto exposure reset interval
+	if (jsonReader["Product_Info"].isMember("auto_exp_reset_interval")) {
+		cData.auto_exp_reset_interval = jsonReader["Product_Info"]["auto_exp_reset_interval"].asUInt();
+	}
+	else {
+		cData.auto_exp_reset_interval = 200;
+	}
+
+	//target intensity threshold for auto exposure
+	if (jsonReader["Product_Info"].isMember("target_intensity_threshold_high")) {
+		cData.target_intensity_threshold_high = jsonReader["Product_Info"]["target_intensity_threshold_high"].asFloat();
+	}
+	else {
+		cData.target_intensity_threshold_high = 60.0f;
+	}
+
+	//target intensity threshold for auto exposure
+	if (jsonReader["Product_Info"].isMember("target_intensity_threshold_low")) {
+		cData.target_intensity_threshold_low = jsonReader["Product_Info"]["target_intensity_threshold_low"].asFloat();
+	}
+	else {
+		cData.target_intensity_threshold_low = 20.0f;
+	}
 	//Parallax auto calib offset setting from config file
 	if (jsonReader["Parallax"].isMember("AutoCalib_X_offset")) {
 		cData.parallaxTable.auto_calib_x_offset = jsonReader["Parallax"]["AutoCalib_X_offset"].asDouble();
@@ -402,6 +453,17 @@ int CalibHandle::updateCalibFields() {
 	jsonReader["Parallax"]["Y"] = l_vector_offset_y;
 	//jsonReader["Parallax"]["Size"] = l_vector4;
 
+	//update transform matrix
+	Json::Value transMat(Json::arrayValue);
+	for (int i = 0; i < 3; ++i) {
+		Json::Value row(Json::arrayValue);
+		for (int j = 0; j < 3; ++j) {
+			row.append(cData.FC_in_FB.at<double>(i, j));
+		}
+		transMat.append(row);
+	}
+	jsonReader["iProbe_info"]["FC_in_FB"] = transMat;
+
 	//update the AutoCalib x and y offset
 	jsonReader["Parallax"]["AutoCalib_X_offset"] = cData.parallaxTable.auto_calib_x_offset;
 	jsonReader["Parallax"]["AutoCalib_Y_offset"] = cData.parallaxTable.auto_calib_y_offset;
@@ -443,6 +505,15 @@ int CalibHandle::updateCalibFields() {
 	jsonReader["Product_Info"]["Spiral_freq"] = cData.spiral_freq;
 	//set auto calib config
 	jsonReader["Product_Info"]["cam_auto_calib"] = cData.cam_auto_calib;
+	//set auto flash adjust factor
+	jsonReader["Product_Info"]["auto_flash_adjust_factor"] = cData.auto_flash_adjust_factor;
+	//set auto target intensity for auto exposure
+	jsonReader["Product_Info"]["target_intensity_for_auto_exp"] = cData.target_intensity_for_auto_exp;
+	//auto exp reset interval
+	jsonReader["Product_Info"]["auto_exp_reset_interval"] = cData.auto_exp_reset_interval;
+	//target intensity threshold for auto exposure
+	jsonReader["Product_Info"]["target_intensity_threshold_high"] = cData.target_intensity_threshold_high;
+	jsonReader["Product_Info"]["target_intensity_threshold_low"] = cData.target_intensity_threshold_low;
 
 
 	//updating camera interface setting using config file

@@ -24,12 +24,13 @@ CameraInterface::CameraInterface() {
 	default_properties.video_roi_height = 1;
 	default_properties.fps = 21;
 	default_properties.exposure = 1.0;
-	default_properties.stream_exposure = 15;
+	default_properties.stream_exposure = 2.0;
 	default_properties.stream_analog_gain = 1.0;
 	default_properties.stream_digital_gain = 1.5;
 	default_properties.analog_gain = 1.5f;
 	default_properties.digital_gain = 1.0f;
 	default_properties.flash_on = true;
+	default_properties.FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
 
 	properties = default_properties;
 
@@ -145,16 +146,17 @@ bool CameraInterface::disableFlash() {
 	return true;
 }
 
-
 //get the most recent high resolution image, specifying which components you want (Y, U, V, or floating point RGBA)
 //noCopyYUV true just stores image in YUV buffers, false copies images to separate openCV Mat
 //yuvAOI specifies area of interest for YUV images
-bool CameraInterface::nextProcessImage(cv::Mat& yImage, bool getY, cv::Mat& uImage, bool getU, cv::Mat& vImage, bool getV, cv::Mat& rgbaImage, bool getRGBA, bool noCopyYUV, cv::Rect yuvAOI) {
+bool CameraInterface::nextProcessImage(cv::Mat& yImage, bool getY, cv::Mat& uImage, bool getU, cv::Mat& vImage, bool getV, cv::Mat& rgbaImage, bool getRGBA, bool noCopyYUV, unsigned long &Timestamp, cv::Rect yuvAOI) {
 
 	std::lock_guard<std::mutex> guard(stopGuard);
 
 	unsigned long imgTime;
-	int result = updateBuffer(m_dmabuf_proc, captureStream, m_consumer, imgTime);
+	int result = updateBuffer(m_dmabuf_proc, captureStream, m_consumer, imgTime, 0);
+	Timestamp = imgTime;
+	// std::cout << "timestamp in nestprocessimage: " << Timestamp << std::endl;
 	if (result < 0) {
 		return false;
 	}
@@ -339,12 +341,12 @@ bool CameraInterface::lastTwoProcessImages(cv::Mat& yFirst, cv::Mat& uFirst, cv:
 }
 
 //get new video image encoded as JPEG
-bool CameraInterface::nextVideoImage(char** buf, unsigned long& data_size) {
-	return nextVideoImage(buf, data_size, cv::Point2f(properties.video_roi_x, properties.video_roi_y), cv::Point2f(properties.video_roi_width, properties.video_roi_height));
+bool CameraInterface::nextVideoImage(char** buf, unsigned long& data_size, unsigned long &timeStamp) {
+	return nextVideoImage(buf, data_size, cv::Point2f(properties.video_roi_x, properties.video_roi_y), cv::Point2f(properties.video_roi_width, properties.video_roi_height), timeStamp);
 }
 
 //get new video image encoded as JPEG and limited to the specified ROI
-bool CameraInterface::nextVideoImage(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize) {
+bool CameraInterface::nextVideoImage(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize, unsigned long &timeStamp) {
 
 	std::lock_guard<std::mutex> guard(stopGuard);
 
@@ -355,13 +357,18 @@ bool CameraInterface::nextVideoImage(char** buf, unsigned long& data_size, cv::P
 		data_size = 0;
 		return result == 0;
 	}
+	timeStamp = imgTime;
 
 	SmartROI region = getROI(properties.video_res_x, properties.video_res_y, roiCorner, roiSize);
 	return jpegToBuffer(m_dmabuf_video, buf, data_size, region.roi, region.full_img);
 }
 
+bool CameraInterface::nextProcessImageJpeg(char** buf, unsigned long& data_size, unsigned long &timeStamp) {
+	return nextProcessImageJpeg(buf, data_size, cv::Point2f(properties.video_roi_x, properties.video_roi_y), cv::Point2f(properties.video_roi_width, properties.video_roi_height), timeStamp);
+}
+
 //get new high resolution image encoded as JPEG with specified ROI
-bool CameraInterface::nextProcessImageJpeg(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize) {
+bool CameraInterface::nextProcessImageJpeg(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize, unsigned long &timeStamp) {
 
 	std::lock_guard<std::mutex> guard(stopGuard);
 
@@ -369,12 +376,11 @@ bool CameraInterface::nextProcessImageJpeg(char** buf, unsigned long& data_size,
 	if (updateBuffer(m_dmabuf_proc, captureStream, m_consumer, imgTime) <= 0) {
 		return false;
 	}
+	timeStamp = imgTime;
 
 	SmartROI region = getROI(properties.res_x, properties.res_y, roiCorner, roiSize);
 	return jpegToBuffer(m_dmabuf_proc, buf, data_size, region.roi, region.full_img);
 }
-
-
 
 //helper function to wait for new image and place it in NvBuffer
 int CameraInterface::updateBuffer(int& fd, Argus::UniqueObj<Argus::OutputStream>& ostream, Argus::UniqueObj<EGLStream::FrameConsumer>& fconsumer, unsigned long& imgTime, int fps_limit) {
@@ -407,7 +413,8 @@ int CameraInterface::updateBuffer(int& fd, Argus::UniqueObj<Argus::OutputStream>
 	ORIGINATE_ERROR("Unable to get Capture Metadata from frame");
      
 	//getting timestamp and storing the diff as a pair
-	present_time = iCaptureMeta->getSensorTimestamp();
+	imgTime = iCaptureMeta->getSensorTimestamp();
+	// std::cout << "timestamp in updateBuffer: " << imgTime << std::endl;
 	
 	// std::ofstream os("TimeStamp.txt", std::ios::app);
 	// os << "Present Time: " << present_time <<" nano seconds\n";
@@ -436,7 +443,7 @@ int CameraInterface::updateBuffer(int& fd, Argus::UniqueObj<Argus::OutputStream>
 	//else
 	//	imgTime = currentTime.time_since_epoch().count() - 5000000;
 
-	imgTime = frameTime + diffTime - 30000000;
+	//imgTime = frameTime + diffTime - 30000000;
 
 
 
@@ -763,6 +770,7 @@ bool CameraInterface::applyCameraProperties() {
 	iSourceSettings->setGainRange(Range<float>(1.0f, properties.analog_gain));
 	//iSourceSettings->setGainRange(Range<float>(1.0f, 1.0f));
 
+	std::cout << "Cam Prop Applied" << std::endl;
 	return true;
 }
 
@@ -789,6 +797,8 @@ bool CameraInterface::createConsumers() {
 	if (!jpegBuffer)
 		return false;
 
+	
+	std::cout << "Consumers Created" << std::endl;
 	return true;
 }
 
@@ -832,6 +842,9 @@ bool CameraInterface::startVideoCapture() {
 
 	Argus::IEGLOutputStream *iStream = interface_cast<IEGLOutputStream>(m_stream);
 
+	if (!iStream)
+		ORIGINATE_ERROR("Failed to get ICaptureSession interface");
+		
 	// Wait until the producer has connected to the stream.
 	std::cout << "Waiting until producer is connected..." << std::endl;
 	if (iStream->waitUntilConnected() != STATUS_OK)
@@ -848,6 +861,7 @@ bool CameraInterface::startVideoCapture() {
 
 	running = true;
 
+	std::cout << "Video started" << std::endl;
 	return true;
 }
 
@@ -865,6 +879,13 @@ bool CameraInterface::stopVideoCapture() {
 	// Stop the repeating request and wait for idle.
 	//iCaptureSession->stopRepeat();
 	iCaptureSession->cancelRequests();
+
+	Argus::Status st = iCaptureSession->waitForIdle(3000000000);
+    if (st != Argus::STATUS_OK) {
+        ORIGINATE_ERROR("Camera failed to enter idle state.");
+        return false;
+    }
+
 	return true;
 }
 

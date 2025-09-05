@@ -24,6 +24,7 @@ public:
 	int mainLoop();
 	//reset video so new camera properties can take effect
 	bool resetVideo();
+
 private:
 	//current state and desired next state
 	StateEnum currentState;
@@ -62,14 +63,12 @@ private:
 	FakeImgTakenFlag fake_img_taken_flag_;
 #endif
 
-
-
-
 	//handle updates from SDK
 	bool processSDKUpdate();
 	bool handleSDKControls(ControlState state);
 
 	//video stream thread (call start and end to start and stop video streaming)
+	void sendFullResImages();
 	static void SendImages(IVisionStateMachine* iv);
 	void sendImages();
 	std::thread videoThread;
@@ -89,6 +88,12 @@ private:
 	bool restartCamera();
 
 	//add parameters to SDK acknowledgements
-	static std::vector<float> CreateParamList(float param1, float param2 = -1, float param3 = -1, float param4 = -1);
+	static std::vector<float> CreateParamList(float param1 = NAN, float param2 = NAN, float param3 = NAN,
+                                       		  float param4 = NAN, float param5 = NAN, float param6 = NAN,
+											  float param7 = NAN, float param8 = NAN, float param9 = NAN);
 	static std::vector<std::string> CreateMsgList(std::string message1);
+
+	double exposureBuf;
+	double digitalGainBuf;
+	double analogGainBuf;
 };

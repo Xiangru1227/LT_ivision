@@ -15,6 +15,9 @@ public:
 	bool stateAction();
 	bool leaveState();
 
-private:
+private:	
+	// used for track printout
+	int printCounter = 0; 
+    const int printInterval = 5000; 
 	
 };

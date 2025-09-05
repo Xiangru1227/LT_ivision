@@ -36,12 +36,13 @@ bool IVisionState::handleSDKControls(ControlState& state) {
 
 //get two new images, process them and update observed SMR data
 void IVisionState::updateSMRTracking() {
+	// std::cout << "In updateSMRTracking()." << std::endl;
 	cam->updateSMRImages();
 	//reset the auto calib buff when the lock is lost
 	//mov->reset_buf();
-	ImgAngles ang1 = firmware->getPrevImageAngles();
 	ImgAngles ang2 = firmware->getImageAngles();
-	cam->updateSMRTracking(ang1.az_top, ang1.el_top, ang1.az_bot, ang1.el_bot, ang2.az_top, ang2.el_top, ang2.az_bot, ang2.el_bot);
+	cam->updateSMRTracking(ang2.az_top, ang2.el_top, ang2.az_bot, ang2.el_bot);
+	// std::cout << "updateSMRTracking" << std::endl;
 }
 
 

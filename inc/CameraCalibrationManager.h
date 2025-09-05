@@ -22,6 +22,10 @@ public:
 	//set camera/distortion parameters
 	void setCalibrationValues(cv::Mat cm, cv::Mat dc, cv::Size imSize);
 
+	// set/get transform matrix
+	void setFCinFB(const cv::Mat& matrix) { FC_in_FB = matrix.clone(); }
+    cv::Mat getFCinFB() const { return FC_in_FB; }
+
 
 	//fix camera distortion
 	void initializeUndistortionMaps(cv::Size imageSize);	//set up undistortion functions
@@ -61,6 +65,7 @@ private:
 	//camera calibration parameters
 	cv::Mat cameraMatrix;
 	cv::Mat distortionCoeffs;
+	cv::Mat FC_in_FB;
 
 	//calibration file reader
 	CalibHandle* cHandle;

@@ -134,19 +134,24 @@ void SMRTracker::updateTracking(std::vector<SMRData>& currentSMRs, float camAz, 
 	//iterate over current observed SMRs and assign each to the closest valid tracked SMR
 	clearSMRUpdates();
 	for (int i = 0; i < currentSMRs.size(); i++) {
-		float minDistance = 1.0f;
+		float minDistance = 9999.0f;
 		int minIndex = -1;
+		//std::cout << "Current SMR: " << currentSMRs[i].getAz() << ", " << currentSMRs[i].getEl() << std::endl;
 		for (int j = 0; j < trackedSMRs.size(); j++) {
-			float dist = trackedSMRs[j].data.validDistance(currentSMRs[i], pixAng);
+			//std::cout << "Tracked SMR: " << trackedSMRs[j].data.getAz() << ", " << trackedSMRs[j].data.getEl() << std::endl;
+			float dist = trackedSMRs[j].data.validDistance(currentSMRs[i], pixAng);	
+			std::cout << "Valid distance: " << dist << std::endl;
 			if (dist >= 0 && dist < minDistance) {
 				minIndex = j;
 				minDistance = dist;
 			}
 		}
 		if (minIndex >= 0) {
+			std::cout << "Updating SMR " << minIndex << " with " << i << std::endl;
 			updateSMR(minIndex, currentSMRs[i]);
 		}
 		else {
+			std::cout << "Adding SMR " << i << std::endl;
 			addSMR(currentSMRs[i]);
 		}
 	}
@@ -269,9 +274,12 @@ std::vector<SMRData> SMRTracker::getCurrentTrackedSMRs() {
 	std::vector<SMRData> data;
 	//std::cout << "Tracked SMRs: " << trackedSMRs.size() << std::endl;
 	for (int i = 0; i < trackedSMRs.size(); i++) {
-		if (trackedSMRs[i].matchedCount > 2) {
+		//std::cout << "Matched Count: " << trackedSMRs[i].matchedCount << std::endl;
+		if (trackedSMRs[i].matchedCount >= 1) {
 			data.push_back(trackedSMRs[i].data);
-			//std::cout << "Tracked SMR: " << trackedSMRs[i].data.getImgAz() << ", " << trackedSMRs[i].data.getImgEl() << std::endl;
+			// std::cout << "Tracked SMR: Img (AZ, El) = (" << trackedSMRs[i].data.getImgAz() << ", " << trackedSMRs[i].data.getImgEl() << ")" 
+			// 		  << " Abs (AZ,El() = (" << trackedSMRs[i].data.getAz()  << ", " << trackedSMRs[i].data.getEl()  << ")"
+			// 		  << " Pixels:" << trackedSMRs[i].data.getImgPix() << ", Score:"<< trackedSMRs[i].data.getScore() << std::endl;
 		}
 	}
 	return data;
@@ -321,19 +329,21 @@ void SMRTracker::add_redSMR(std::vector<cv::Point2f>& red_observed) {
 
 void SMRTracker::handleUnmatched(float diffAz, float diffEl, std::vector<cv::Point2f>& redSMRs, bool back_cam) {
 	for (int i = trackedSMRs.size() - 1; i >= 0; i--) {
+		//std::cout << "Handling Unmatched SMRs"<< std::endl;
 		if (!trackedSMRs[i].updated) {
-			//std::cout << "Tracked SMR " << i << " missing count: " << trackedSMRs[i].missingCount << std::endl;
-			//std::cout << "Tracked SMR " << i << " matched count: " << trackedSMRs[i].matchedCount << std::endl;
+			// std::cout << "Tracked SMR " << i << " missing count: " << trackedSMRs[i].missingCount << std::endl;
+			// std::cout << "Tracked SMR " << i << " matched count: " << trackedSMRs[i].matchedCount << std::endl;
 			//std::cout << "Can't see SMR, diff az: " << diffAz << ", diff el: " << diffEl << std::endl;
 			//TODO: if red SMR is close, update data to say it is being hit by laser
 			if (!trackedSMRs[i].data.obscuredByLaser()){
-				trackedSMRs[i].missingCount += 10;
+				trackedSMRs[i].missingCount += 5;
 			}
 			else 
 				trackedSMRs[i].missingCount++;
 			if (trackedSMRs[i].missingCount > 20 * trackedSMRs[i].matchedCount) {
 				trackedSMRs.erase(trackedSMRs.begin() + i);
-				//std::cout << "erase tracked SMR" << std::endl;
+				// std::cout << "This SMR's missed count: " << trackedSMRs[i].missingCount << "  Matched Count: " << trackedSMRs[i].matchedCount << std::endl;
+				// std::cout << "erase tracked SMR" << std::endl;
 			}
 			else {
 				if(back_cam){
@@ -341,45 +351,50 @@ void SMRTracker::handleUnmatched(float diffAz, float diffEl, std::vector<cv::Poi
 					trackedSMRs[i].data.setImgEl(trackedSMRs[i].data.getImgEl() - diffEl);
 				}
 				else {
+					
 					trackedSMRs[i].data.setImgAz(trackedSMRs[i].data.getImgAz() + diffAz);
 					trackedSMRs[i].data.setImgEl(trackedSMRs[i].data.getImgEl() - diffEl);
+					//std::cout << "Tracked SMR Img Az: " << trackedSMRs[i].data.getImgAz() << " diff az: " << diffAz << std::endl;
+					//std::cout << "Tracked SMR Img El: " << trackedSMRs[i].data.getImgEl() << " diff el: " << diffEl << std::endl;
 				}
-				
-				for (int j = 0; j < redSMRs.size(); j++) {
-					float redDiffAz = trackedSMRs[i].data.getImgAz() - redSMRs[j].x;
-					float redDiffEl = trackedSMRs[i].data.getImgEl() - redSMRs[j].y;
-					float redDist = redDiffAz * redDiffAz + redDiffEl * redDiffEl;
-					//std::cout << "SMR: " << trackedSMRs[i].data.getImgAz() << ", " << trackedSMRs[i].data.getImgEl() << std::endl;
-					//std::cout << "Distance to red reflection: " << redDiffAz << ", " << redDiffEl << " = " << redDist << std::endl;
-					if (redDist < .1f) {
-						trackedSMRs[i].data.setLaserHit(true);
-					}
+			}	
+
+			for (int j = 0; j < redSMRs.size(); j++) {
+				float redDiffAz = trackedSMRs[i].data.getImgAz() - redSMRs[j].x;
+				float redDiffEl = trackedSMRs[i].data.getImgEl() - redSMRs[j].y;
+				float redDist = redDiffAz * redDiffAz + redDiffEl * redDiffEl;
+				// std::cout << "1. SMR: " << trackedSMRs[i].data.getImgAz() << ", " << trackedSMRs[i].data.getImgEl() << std::endl;
+				// std::cout << "Distance to red reflection: " << redDiffAz << ", " << redDiffEl << " = " << redDist << std::endl;
+				if (redDist < 40000.0f) {
+					trackedSMRs[i].data.setLaserHit(true);
 				}
 			}
+			
 		}
 		else {
 			trackedSMRs[i].data.setLaserHit(false);
 		}
 	}
-
+	// std::cout << "Tracked SMRs after handling unmatched: " << trackedSMRs.size() << std::endl;
+	// std::cout << "Red SMRs: " << redSMRs.size() << " TrackedSMRs: " <<  trackedSMRs.size() << std::endl;
 	if (redSMRs.size() > trackedSMRs.size() ){
 
 		for (int j = 0; j < redSMRs.size(); j++) {
 					float redDiffAz = /*trackedSMRs[i].data.getImgAz() -*/ redSMRs[j].x;
 					float redDiffEl = /*trackedSMRs[i].data.getImgEl() -*/ redSMRs[j].y;
 					float redDist = redDiffAz * redDiffAz + redDiffEl * redDiffEl;
-					//std::cout << "SMR: " << trackedSMRs[i].data.getImgAz() << ", " << trackedSMRs[i].data.getImgEl() << std::endl;
-					//std::cout << "Distance to red reflection: " << redDiffAz << ", " << redDiffEl << " = " << redDist << std::endl;
+					// std::cout << "SMR: " << trackedSMRs[j].data.getImgAz() << ", " << trackedSMRs[j].data.getImgEl() << std::endl;
+					// std::cout << "Distance to red reflection: " << redDiffAz << ", " << redDiffEl << " = " << redDist << std::endl;
 					if (redDist < .005f) {
 						add_redSMR(redSMRs);
 						//std::cout << "Adding Red SMRs to tracked SMRs" << std::endl;
-						//redSMRs[j].red_data.setLaserHit(true);
-						trackedSMRs[j].data.setLaserHit(true);
+						// redSMRs[j].red_data.setLaserHit(true);
+						//trackedSMRs[j].data.setLaserHit(true);
 
 					}
-					else
-						trackedSMRs[j].data.setLaserHit(false);
-				}
+					//else
+						//trackedSMRs[j].data.setLaserHit(false);
+		}
 
 	}
 }

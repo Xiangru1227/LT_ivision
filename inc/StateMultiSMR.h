@@ -25,7 +25,6 @@ private:
 	int initialCount;
 
 	int lockCount;
-
 	float startAz, startEl;
 	float lastAz, lastEl;
 

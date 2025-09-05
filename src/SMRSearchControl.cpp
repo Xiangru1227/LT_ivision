@@ -8,8 +8,8 @@
 
 SMRSearchControl::SMRSearchControl() {
 	searchCount = 0;
-	minSearchDistance = 1.2f;
-	maxSearchDistance = 35.0f;
+	minSearchDistance = 0.05f;
+	maxSearchDistance = 40.0f;
 	searchDistance = maxSearchDistance;
 	wantTarget = false;
 	//targetMissingCount = 0;
@@ -56,6 +56,7 @@ void SMRSearchControl::startSearch(float distanceGuess) {
 
 void SMRSearchControl::reportLock() {
 	//std::cout << "Reported lock to search control." << std::endl;
+	isFirstIteration = true;
 	wasHitByLaser = false;
 	redBeamCount = 0;
 	allowJog = true;
@@ -111,18 +112,20 @@ void SMRSearchControl::updateSearch(bool locked, bool targetFound, bool smrHitBy
 		//std::cout << "AZ dist: " << laserDistAz << ", EL dist: " << laserDistEl << std::endl;
 		
 
-		// if(smrImgEl > laserImgEl)
-		// 	updateSearchDistance(smrDistance, smrHitByLaser, false, true); //guiding which direction the laser should jog to search for SMR
-		// else if (smrImgEl < laserImgEl)
-		// 	updateSearchDistance(smrDistance, smrHitByLaser, true, false);
+		// if(smrImgEl > laserImgEl){
+		// 	std::cout << "decreasing" << std::endl; //guiding which direction the laser should jog to search for SMR
+		// 	updateSearchDistance(smrDistance, false, false, true);
+			
+		// }else if (smrImgEl < laserImgEl) {
+		// 	std::cout << "increasing" << std::endl;
+		// 	updateSearchDistance(smrDistance, false, true, false);
+			
+		// }
+			 //guiding which direction the laser should jog to search for SMR}
+		
+		//std::cout << "Updated search distance with smrdistance: " << smrDistance << std::endl;
+		updateSearchDistance(smrDistance, false); //smr is blinded by laser, I still want the dist to be updated.
 
-		if (laserDistAz < minDist && laserDistEl < minDist) {
-			//std::cout << "Updated search distance with smrdistance: " << smrDistance << std::endl;
-			updateSearchDistance(smrDistance, smrHitByLaser);
-		}
-		else 
-			searchDistance = smrDistance;
-	
 
 		if (smrHitByLaser)
 			wasHitByLaser = true;
@@ -137,6 +140,7 @@ void SMRSearchControl::updateSearch(bool locked, bool targetFound, bool smrHitBy
 	else {
 		wasHitByLaser = false;
 		redBeamCount = 0;
+		isFirstIteration = true;
 	}
 }
 
@@ -176,177 +180,94 @@ float SMRSearchControl::getCurrentSearchRadius() {
 	return searchRadius;
 }
 
-float SMRSearchControl::DistEstimatePow(int x, int nmode )
-{
-	//testing the function to get an estimated distance, I know a lot of constants, figuring out what those are. eventually needs to be replaced by actual formula of calculating distance depending on the reflection diameter
-	float dis = -1;
-	//std::cout << "Nm Pix: " << x << std::endl;
-	if (x>0)
-	{
-		switch (nmode)  // not sure what these numbers mean. Testing from the old iVision
-		{
-		case 0: // use hollow SMR prediction equation  
-			dis = (float) 1000*pow(x,-0.853);
-			break;
-		case 1: // use Solid SMR prediction equation
-			dis = (float) 1000*pow(x,-0.755);
-			break;
-		case 2: // use Average prediction equation
-			dis = (float) 1000*pow(x,-1.3);
-			break;
-		case 3: // this case is when using the core pixels with solid
-			dis = (float) 1000*pow(x,-0.903);
-			break;
-		//default: // use hollow SMR prediction equation  
-		//	dis = (int) 19426*pow(x,-0.853);
-		//	break;
-		}
-		// distance estimate cannot be more than the farmost desined calibration distance which is 30 meters
-		if (dis > MAXIMUM_EST_DISTANCE)
-		{
-			dis = MAXIMUM_EST_DISTANCE;
-		}
-		else if (dis < m_NearCalibDistance)
-			dis = m_NearCalibDistance;
-	}
-	else
-	{
-		std::cout << "Number of pixels cannot be zero or negative value" << std::endl;
-	}
-	//std::cout << "Dist Est: " << dis << std::endl;
-	return dis;
-}
+void SMRSearchControl::updateSearchDistance(float estimatedDistance, bool targetHit) {
+    static float lowerBound = minSearchDistance; // Dynamic lower bound
+    static float upperBound = maxSearchDistance; // Dynamic upper bound
+    static int iterationCount = 0;               // Tracks number of iterations
+    static int resetCount = 0;                   // Tracks number of resets
+    static bool reverseDirection = false;        // Tracks the direction of bounds adjustment
+    const float epsilon = 0.2f;                 // Threshold for convergence detection
+    const int maxIterations = 6;               // Maximum iterations before reset
 
-//TODO: will probably need adjustments, but won't know until testing
-void SMRSearchControl::updateSearchDistance(float estimatedDistance, bool smrClose, bool dist_inc, bool dist_dec) {
-	float searchConstant = (smrClose) ? .12f : 1.2f;
-	float searchScalar = (smrClose) ? .02f : .06f;
 
-	// if(dist_dec){ //if the laser pointer is below the smr
-	// 	std::cout << "Incr search dist, elMinus cnt: " << searchCountELMinus << std::endl;
-	// 	if (estimatedDistance > 0 && (searchCountELMinus == 0 || searchCountELMinus == 1)) {
-	// 		if (searchDistance > estimatedDistance - 2.0f && searchDistance > minSearchDistance) {
-	// 			searchDistance = std::max(searchDistance - searchConstant  - searchScalar*searchDistance, estimatedDistance - 2.0f);
-	// 			searchDistance = std::max(searchDistance, minSearchDistance);
-	// 			searchCountELMinus++;
-	// 		}
-	// 		else {
-	// 			searchCountELMinus++;
-	// 		}
-	// 	}
-	// 	else if (estimatedDistance > 0 && (searchCountELMinus == 2 || searchCountELMinus == 3)) {
-	// 		if (searchDistance > estimatedDistance - 4.0f && searchDistance > minSearchDistance) {
-	// 			searchDistance = std::max(searchDistance - searchConstant  - searchScalar*searchDistance, estimatedDistance - 4.0f);
-	// 			searchDistance = std::max(searchDistance, minSearchDistance);
-	// 			searchCountELMinus++;
-	// 		}
-	// 		else {
-	// 			searchCountELMinus++;
-	// 		}
-	// 	}
-	// 	else {
-	// 		if (searchDistance > minSearchDistance) {
-	// 			searchDistance = std::max(searchDistance - searchConstant - searchScalar*searchDistance, estimatedDistance - 6.0f);
-	// 			searchDistance = std::max(searchDistance, minSearchDistance);
-	// 		}
-	// 	}
+    // Handle the first iteration: Initialize bounds using estimatedDistance
+    if (isFirstIteration) {
+        if (estimatedDistance > 0.0f) {
+            lowerBound = std::max(minSearchDistance, estimatedDistance - 2.0f);
+            upperBound = std::min(maxSearchDistance, estimatedDistance + 2.0f);
+        } else {
+            // Default bounds if no estimated distance is provided
+            lowerBound = minSearchDistance;
+            upperBound = maxSearchDistance;
+            //std::cout << "Warning: Estimated distance is 0. Using default bounds." << std::endl;
+        }
 
-	// }
 
-	// else if(dist_inc){ // if the laser pointer is above the SMR
-	// std::cout << "Decr search dist, elPlus cnt: " << searchCountELMinus << std::endl;
-	// 	if (estimatedDistance > 0 && (searchCountELPlus == 0 || searchCountELPlus == 1)) {
-	// 		if (searchDistance < estimatedDistance + 2.0f && searchDistance < maxSearchDistance) {
-	// 			searchDistance = std::min(searchDistance + searchConstant + searchScalar*searchDistance, estimatedDistance + 2.0f);
-	// 			searchDistance = std::min(searchDistance, maxSearchDistance);
-	// 			searchCountELPlus++;
-	// 		}
-	// 		else {
-	// 			searchCountELPlus++;
-	// 		}
-	// 	}
-	// 	else if (estimatedDistance > 0 && (searchCountELPlus == 2 || searchCountELPlus == 3)) {
-	// 		if (searchDistance < estimatedDistance + 4.0f && searchDistance < maxSearchDistance) {
-	// 			searchDistance = std::min(searchDistance + searchConstant + searchScalar*searchDistance, estimatedDistance + 4.0f);
-	// 			searchDistance = std::min(searchDistance, maxSearchDistance);
-	// 			searchCountELPlus++;
-	// 		}
-	// 		else {
-	// 			searchCountELPlus++;
-	// 		}
-	// 	}
-	// 	else{
-	// 		if (searchDistance < maxSearchDistance) {
-	// 			searchDistance = std::min(searchDistance + searchConstant + searchScalar*searchDistance, estimatedDistance + 6.0f);
-	// 			searchDistance = std::max(searchDistance, minSearchDistance);
-	// 		}
-			
-	// 	}
 
-	//}
 
-	if (estimatedDistance > 0 && (searchCount == 0 || searchCount == 2)) {
-		if (searchDistance > estimatedDistance - 2.0f && searchDistance > minSearchDistance) {
-			searchDistance = std::max(searchDistance - searchConstant  - searchScalar*searchDistance, estimatedDistance - 2.0f);
-			searchDistance = std::max(searchDistance, minSearchDistance);
-		}
-		else {
-			searchCount++;
-		}
-	}
-	else if (estimatedDistance > 0 && (searchCount == 1 || searchCount == 3)) {
-		if (searchDistance < estimatedDistance + 2.0f && searchDistance < maxSearchDistance) {
-			searchDistance = std::min(searchDistance + searchConstant + searchScalar*searchDistance, estimatedDistance + 2.0f);
-			searchDistance = std::min(searchDistance, maxSearchDistance);
-		}
-		else {
-			searchCount++;
-		}
-	}
-	else if (estimatedDistance > 0 && (searchCount == 4 || searchCount == 6)) {
-		if (searchDistance > estimatedDistance - 4.0f && searchDistance > minSearchDistance) {
-			searchDistance = std::max(searchDistance - searchConstant  - searchScalar*searchDistance, estimatedDistance - 4.0f);
-			searchDistance = std::max(searchDistance, minSearchDistance);
-		}
-		else {
-			searchCount++;
-		}
-	}
-	else if (estimatedDistance > 0 && (searchCount == 5 || searchCount == 7)) {
-		if (searchDistance < estimatedDistance + 4.0f && searchDistance < maxSearchDistance) {
-			searchDistance = std::min(searchDistance + searchConstant + searchScalar*searchDistance, estimatedDistance + 4.0f);
-			searchDistance = std::min(searchDistance, maxSearchDistance);
-		}
-		else {
-			searchCount++;
-		}
-	}
+        searchDistance = (lowerBound + upperBound) / 2.0f;
+    //    std::cout << "First iteration: Initialized bounds -> "
+    //            << "Lower = " << lowerBound << ", Upper = " << upperBound << std::endl;
 
-	else if (searchCount % 2 == 0) {
-		//float searchConstant = -.8f;
-		//float searchScalar = -.03f;
-		if (searchDistance > minSearchDistance) {
-			searchDistance = std::max(searchDistance - searchConstant - searchScalar*searchDistance, minSearchDistance);
-			searchDistance = std::max(searchDistance, minSearchDistance);
-		}
-		else {	
-			searchDistance = std::min(searchDistance + searchConstant + searchScalar*searchDistance, maxSearchDistance);
-			searchDistance = std::min(searchDistance, maxSearchDistance);
-			searchCount++;
-		}
-	}
-	else {
-		//float searchConstant = .8f;
-		//float searchScalar = .03f;
-		if (searchDistance < maxSearchDistance) {
-			searchDistance = std::min(searchDistance + searchConstant + searchScalar*searchDistance, maxSearchDistance);
-			searchDistance = std::max(searchDistance, minSearchDistance);
-		}
-		else {
-			searchDistance = std::max(searchDistance - searchConstant - searchScalar*searchDistance, minSearchDistance);
-			searchDistance = std::min(searchDistance, maxSearchDistance);
-			searchCount++;
-		}
-	}
-	//std::cout << "Search count: " << searchCount << ", search distance: " << searchDistance << std::endl;
+        isFirstIteration = false; // Switch off first iteration flag
+        iterationCount = 0;       // Reset iteration counter
+        resetCount = 0;           // Reset reset counter
+        reverseDirection = false; // Start in the default direction
+        return;
+    }
+
+    // Perform binary search: Narrow down bounds
+    searchDistance = (lowerBound + upperBound) / 2.0f;
+
+    // Debugging output
+    // std::cout << "Iteration " << iterationCount
+    //           << ": Search Distance = " << searchDistance
+    //           << ", Lower Bound = " << lowerBound
+    //           << ", Upper Bound = " << upperBound
+    //           << ", Reverse Direction = " << reverseDirection << std::endl;
+
+    // Adjust bounds
+    if (upperBound - lowerBound > epsilon) {
+        // Narrow the bounds based on the midpoint
+        if (!reverseDirection) {
+            if (searchDistance > lowerBound) {
+                lowerBound = searchDistance; // Shrinking the lower bound
+            } else {
+                upperBound = searchDistance; // Shrinking the upper bound
+            }
+        } else {
+            // Reverse bounds adjustment logic
+            if (searchDistance < upperBound) {
+                upperBound = searchDistance; // Shrinking the upper bound
+            } else {
+                lowerBound = searchDistance; // Shrinking the lower bound
+            }
+        }
+    } else {
+        //std::cout << "Bounds too close! Attempting reset." << std::endl;
+
+        // Reset bounds if they are too close or max iterations reached
+        if (iterationCount >= maxIterations || upperBound - lowerBound < epsilon) {
+            resetCount++;
+            lowerBound = minSearchDistance;
+            upperBound = maxSearchDistance;
+            searchDistance = (lowerBound + upperBound) / 2.0f;
+            iterationCount = 0; // Reset iteration counter
+
+            // Reverse direction after every two resets
+            if (resetCount % 2 == 0) {
+                reverseDirection = !reverseDirection;
+                //std::cout << "Reversing direction of bounds adjustment after reset #" << resetCount << std::endl;
+            }
+
+            // std::cout << "Bounds reset to -> "
+            //           << "Lower = " << lowerBound
+            //           << ", Upper = " << upperBound
+            //           << ", Reverse Direction = " << reverseDirection << std::endl;
+            return;
+        }
+    }
+
+    // Increment iteration counter
+    iterationCount++;
 }

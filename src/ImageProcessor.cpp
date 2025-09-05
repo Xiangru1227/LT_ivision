@@ -230,20 +230,20 @@ void ImageProcessor::produceSMRList(cv::Mat src1Y, cv::Mat src1U, cv::Mat src1V,
 	cv::Mat src3Y, src4Y, src3U, src3V;
 	 
 	// imwrite("src2Y.png", src2Y);
-	
+	// imwrite("src2U.png", src2U);
+	// imwrite("src2V.png", src2V);
+	// imwrite("src1Y.png", src1Y);
+	// imwrite("src1U.png", src1U);
+	// imwrite("src1V.png", src1V);
+
 	//differential of y channel
-	cv::absdiff(src1Y , src2Y , src3Y);
-	//cv::absdiff(src2Y , src1Y , src4Y);
+	cv::absdiff(src1Y, src2Y, src3Y);
 
 	//differential of U channel
 	cv::absdiff(src1U, src2U, src3U);
 	
 	//differential of V channel
 	cv::absdiff(src1V, src2V, src3V);
-
-	//imwrite("src3Y.png", src3Y);
-	// imwrite("src3U.png", src3U);
-	// imwrite("src3V.png", src3V);
 
 	//std::cout << "Produce SMR List" << std::endl;
 	  if (src3Y.cols * src3Y.rows > 1000000) {
@@ -270,7 +270,6 @@ void ImageProcessor::produceSMRList(cv::Mat src1Y, cv::Mat src1U, cv::Mat src1V,
 		fifth.join();
 		sixth.join();
 		seventh.join();
-
 		
 		src5List.insert(src5List.end(), src5List2.begin(), src5List2.end());
 		src5List.insert(src5List.end(), src5List3.begin(), src5List3.end());
@@ -294,7 +293,7 @@ void ImageProcessor::produceSMRList(cv::Mat src1Y, cv::Mat src1U, cv::Mat src1V,
 	float offsetY = 0;
 	int matches = 0;
 
-	//std::cout << "src1 list " << src1List.size() << std::endl;
+	// std::cout << "src1 list " << src1List.size() << std::endl;
 	// std::cout << "src5 list " << src5List.size() << std::endl;
 	// std::cout << "src6 list " << src6List.size() << std::endl;
 	
@@ -385,42 +384,23 @@ void ImageProcessor::produceSMRList(cv::Mat src1Y, cv::Mat src1U, cv::Mat src1V,
 
 		int distanceThreshold = 50;
 		int edgeThreshold = 2 * distanceThreshold;
-		//std::cout << "dxt=" << delta.topX << ", dyt=" << delta.topY << std::endl;
-		//std::cout << "dxb=" << delta.botX << ", dyb=" << delta.botY << std::endl;
-		MatchSMRs(src1List, src2List, offsetX, offsetY, delta, matches, distanceThreshold, src1Y.rows);
-		MatchSplitSMRs(src1List, src2List, offsetX, offsetY, delta, matches, distanceThreshold, src1Y.rows);
-		MatchSplitSMRs(src2List, src1List, offsetX, offsetY, delta, matches, distanceThreshold, src1Y.rows);
-		MatchEdgeSMRs(src1List, src2List, offsetX, offsetY, delta, matches, src1Y, src2Y, edgeThreshold, src1Y.rows);
-
-		//std::cout << "After matching SMRs:" << std::endl;
 
 		if (matches > 0) {
 			offsetX = offsetX / matches;
 			offsetY = offsetY / matches;
 		}
 		RemoveBadSMRs(src1List, src3Y, src3U, src3V, offsetX, offsetY, delta, edgeThreshold, src1Y.rows);
-		//std::cout << "Removing bad SMRs from list 2." << std::endl;
-		//RemoveBadSMRs(src2List, src2Y, src2V, offsetX, offsetY, delta, edgeThreshold, src1Y.rows);
-		//removing bad smr from differential algorithm.
-		//RemoveBadSMRs(src3List, src3Y, src3V, offsetX, offsetY, delta, edgeThreshold, src1Y.rows);
-		//std::cout << "After removing bad SMRs:" << std::endl;
-		//std::cout << "SMRs remaining in list 1: " << src1List.size() << std::endl;
-		// std::cout << "SMRs remaining in list 2: " << src2List.size() << std::endl;
-		//std::cout << "SMRs remaining in list 3: " << src3List.size() << std::endl;
-		//std::cout << "Good SMRs: " << std::max(src1List.size(), src2List.size()) << std::endl;
+		
 
 		int totalPix1 = 0;
 		int totalPix2 = 0;	
 		//int totalPix3 = 0;
 		for (int i = 0; i < src1List.size(); i++) {
 			//std::cout << "List 1 SMR: (" << src1List[i].GetMinX() << "," << src1List[i].GetMinY() << "," << src1List[i].GetMaxX() - src1List[i].GetMinX() << "," << src1List[i].GetMaxY() - src1List[i].GetMinY() << ") - " << src1List[i].GetNumPix() << " pixels, " << src1List[i].GetAvgV() << std::endl;
+			//std::cout << "List 1 SMR: (" << src1List[i].GetMinX() << "," << src1List[i].GetMinY() << "," << src1List[i].GetMaxX()
+			//std::cout << "center X: " << src1List[i].GetCenterX() << " centerY: " << src1List[i].GetCenterY() << std::endl;
 			totalPix1 += src1List[i].GetNumPix();
 		}
-
-		// for (int i = 0; i < src2List.size(); i++) {
-		// 	//std::cout << "List 2 SMR: (" << src2List[i].GetMinX() << "," << src2List[i].GetMinY() << "," << src2List[i].GetMaxX() - src2List[i].GetMinX() << "," << src2List[i].GetMaxY() - src2List[i].GetMinY() << ") - " << src2List[i].GetNumPix() << " pixels, " << src2List[i].GetAvgV() << std::endl;
-		// 	totalPix2 += src2List[i].GetNumPix();
-		// }
 
 
 		if (totalPix1 >= totalPix2) {
@@ -457,7 +437,7 @@ void ImageProcessor::produceLaserList(cv::Mat srcY, cv::Mat srcU, cv::Mat srcV) 
 		cv::Rect smrROI(left, up, right - left, down - up);
 		float centerX = tempList[i].GetCenterX();
 		float centerY = tempList[i].GetCenterY();
-		if (IsColorReflection(smrROI, srcY, srcU, srcV, centerX, centerY, size, 160, true) && sizeRatio < 2.0f && sizeRatio > .5f/* && centerX < .6f*srcY.cols && centerX > .4f*srcY.cols && centerY > .3f*srcY.rows*/) {
+		if (IsColorReflection(smrROI, srcY, srcU, srcV, centerX, centerY, size, 160, true) && sizeRatio < 2.0f /*&& sizeRatio > .5f && centerX < .6f*srcY.cols && centerX > .4f*srcY.cols && centerY > .3f*srcY.rows*/) {
 			list.push_back(tempList[i]);
 		}
 	}
@@ -496,180 +476,13 @@ void ImageProcessor::produceLaserList(cv::Mat srcY, cv::Mat srcU, cv::Mat srcV) 
 // }
 
 
-void ImageProcessor::MatchSMRs(std::vector<SMR>& src1List, std::vector<SMR>& src2List, float& offsetX, float& offsetY, ImgDelta delta, int& matches, int distanceThreshold, float imgHeight) {
-
-	for (int i = src1List.size() - 1; i >= 0; i--) {
-		for (int j = src2List.size() - 1; j >= 0; j--) {
-			cv::Point2f delt = interpolateDelta(delta, (src1List[i].GetCenterY() + src2List[j].GetCenterY())/2, imgHeight);
-			float diffX = (float)(src1List[i].GetCenterX() - src2List[j].GetCenterX()) - delt.x;
-			float diffY = (float)(src1List[i].GetCenterY() - src2List[j].GetCenterY()) - delt.y;
-			float distance = std::sqrt(diffX*diffX + diffY*diffY);
-			float width1 = (float)(src1List[i].GetMaxX() - src1List[i].GetMinX() + 1);	
-			float height1 = (float)(src1List[i].GetMaxY() - src1List[i].GetMinY() + 1);
-			float width2 = (float)(src2List[j].GetMaxX() - src2List[j].GetMinX() + 1);
-			float height2 = (float)(src2List[j].GetMaxY() - src2List[j].GetMinY() + 1);
-			float widthRatio = width1 / width2;
-			float heightRatio = height1 / height2;
-			float pixRatio = (float)src1List[i].GetNumPix() / src2List[j].GetNumPix();
-			int pixDiff = src1List[i].GetNumPix() - src2List[j].GetNumPix();
-			float minDimension = std::min(std::min(width1, width2), std::min(height1, height2));
-			float maxDimension = std::max(std::max(width1, width2), std::max(height1, height2));
-			float thresh = std::max((float)distanceThreshold, .2f*minDimension);
-			//bool colorMatch = ((src1List[i].GetAvgV() - 130) * (src2List[j].GetAvgV() - 130)) > 0;
-			
-			if (distance < thresh && ((maxDimension < 2*distanceThreshold && (widthRatio < 3.0f && widthRatio > .33f && heightRatio < 3.0f && heightRatio > .33f)) || (widthRatio < 2.0f && widthRatio > .5f && heightRatio < 2.0f && heightRatio > .5f) || (pixRatio > .6f && pixRatio < 1.67f) || (pixDiff < 8 && pixDiff > -8))) {
-				src1List.erase(src1List.begin() + i);
-				src2List.erase(src2List.begin() + j);
-				//std::cout << "Found match " << i << "-" << j << " with offset: " << diffX << "," << diffY << std::endl;
-				offsetX += diffX + delt.x;
-				offsetY += diffY + delt.y;
-				matches++;
-				break;
-			}
-		}
-	}
-}
-
-void ImageProcessor::MatchSplitSMRs(std::vector<SMR>& src1List, std::vector<SMR>& src2List, float& offsetX, float& offsetY, ImgDelta delta, int& matches, int distanceThreshold, float imgHeight) {
-
-	for (int i = src1List.size() - 1; i >= 0; i--) {
-		for (int j = src2List.size() - 1; j >= 0; j--) {
-			bool found = false;
-			for (int k = 0; k < src2List.size(); k++) {
-				if (k != j) {
-					int pix1 = src2List[j].GetNumPix();
-					int pix2 = src2List[k].GetNumPix();
-					int totalPix = pix1 + pix2;
-					float centerX = (float)(pix1 * src2List[j].GetCenterX() + pix2 * src2List[k].GetCenterX()) / totalPix;
-					float centerY = (float)(pix1 * src2List[j].GetCenterY() + pix2 * src2List[k].GetCenterY()) / totalPix;
-					cv::Point2f delt = interpolateDelta(delta, (src1List[i].GetCenterY() + centerY)/2, imgHeight);
-					float diffX = (float)(src1List[i].GetCenterX() - centerX) - delt.x;
-					float diffY = (float)(src1List[i].GetCenterY() - centerY) - delt.y;
-					float distance = std::sqrt(diffX*diffX + diffY*diffY);
-					float width1 = (float)(src1List[i].GetMaxX() - src1List[i].GetMinX() + 1);	
-					float height1 = (float)(src1List[i].GetMaxY() - src1List[i].GetMinY() + 1);
-					float width2 = (float)(std::max(src2List[j].GetMaxX(), src2List[k].GetMaxX()) - std::min(src2List[j].GetMinX(), src2List[k].GetMinX()) + 1);
-					float height2 = (float)(std::max(src2List[j].GetMaxY(), src2List[k].GetMaxY()) - std::min(src2List[j].GetMinY(), src2List[k].GetMinY()) + 1);
-					float widthRatio = width1 / width2;
-					float heightRatio = height1 / height2;
-					float pixRatio = (float)src1List[i].GetNumPix() / (src2List[j].GetNumPix() + src2List[k].GetNumPix());
-					int pixDiff = src1List[i].GetNumPix() - src2List[j].GetNumPix() - src2List[k].GetNumPix();
-					float minDimension = std::min(std::min(width1, width2), std::min(height1, height2));
-					float maxDimension = std::max(std::max(width1, width2), std::max(height1, height2));
-					float thresh = std::max((float)distanceThreshold, .2f*minDimension);
-					//float avgColor = (src2List[j].GetAvgV() + src2List[k].GetAvgV()) / 2;
-					//std::cout << "avg clr " << src2List[j].GetAvgV()<< "-" << src2List[k].GetAvgV() << std::endl;
-					//bool colorMatch = ((src1List[i].GetAvgV() - 130) * (avgColor - 130)) > 0;
-					std::cout << "distance " << distance << "-" << std::endl;
-					if (distance < thresh && ((maxDimension < 2*distanceThreshold && (widthRatio < 3.0f && widthRatio > .33f && heightRatio < 3.0f && heightRatio > .33f && pixRatio > .33f && pixRatio < 3.0f)) || (widthRatio < 2.0f && widthRatio > .5f && heightRatio < 2.0f && heightRatio > .5f && pixRatio > .33f && pixRatio < 3.0f) || (pixRatio > .6f && pixRatio < 1.67f) || (pixDiff < 8 && pixDiff > -8))) {
-						src1List.erase(src1List.begin() + i);
-						int maxIndex = std::max(j, k);
-						int minIndex = std::min(j, k);
-						src2List.erase(src2List.begin() + maxIndex);
-						src2List.erase(src2List.begin() + minIndex);
-						//std::cout << "Found match " << i << "-" << j << "-" << k << " with offset: " << diffX << "," << diffY << std::endl;
-						offsetX += diffX + delt.x;
-						offsetY += diffY + delt.y;
-						matches++;
-						std::cout << " MatchSplitSMR matches is   " << matches<< std::endl;
-						found = true;
-						break;
-					}
-				}
-			}
-			if (found)
-				break;
-		}
-	}
-}
-
-void ImageProcessor::MatchEdgeSMRs(std::vector<SMR>& src1List, std::vector<SMR>& src2List, float& offsetX, float& offsetY, ImgDelta delta, int& matches, cv::Mat src1Y, cv::Mat src2Y, int distanceThreshold, float imgHeight) {
-
-	for (int i = src1List.size() - 1; i >= 0; i--) {
-		for (int j = src2List.size() - 1; j >= 0; j--) {
-
-			cv::Point2f delt = interpolateDelta(delta, (src1List[i].GetCenterY() + src2List[j].GetCenterY())/2, imgHeight);
-			float diffX = (float)(src1List[i].GetCenterX() - src2List[j].GetCenterX()) - delt.x;
-			float diffY = (float)(src1List[i].GetCenterY() - src2List[j].GetCenterY()) - delt.y;
-			float distance = std::sqrt(diffX*diffX + diffY*diffY);
-			if (distance < distanceThreshold) {
-
-				bool matching = false;
-				if (src1List[i].GetMinX() == 0) {
-					float widthRatio = ((float)(src1List[i].GetMaxX() + 1)) / (src2List[j].GetMaxX() - src2List[j].GetMinX() + 1);
-					float sizeRatio = (widthRatio * src2List[j].GetNumPix()) / src1List[i].GetNumPix();
-					float diffMinY = (float)std::abs(src1List[i].GetMinY() - src2List[j].GetMinY());
-					float diffMaxY = (float)std::abs(src1List[i].GetMaxY() - src2List[j].GetMaxY());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinY < distanceThreshold && diffMaxY < distanceThreshold);
-				}
-				else if (src1List[i].GetMaxX() == src1Y.cols - 1) {
-					float widthRatio = ((float)(src1Y.cols - src1List[i].GetMinX() - 1)) / (src2List[j].GetMaxX() - src2List[j].GetMinX() + 1);
-					float sizeRatio = (widthRatio * src2List[j].GetNumPix()) / src1List[i].GetNumPix();
-					float diffMinY = (float)std::abs(src1List[i].GetMinY() - src2List[j].GetMinY());
-					float diffMaxY = (float)std::abs(src1List[i].GetMaxY() - src2List[j].GetMaxY());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinY < distanceThreshold && diffMaxY < distanceThreshold);
-				}
-				else if (src1List[i].GetMinY() == 0) {
-					float heightRatio = ((float)(src1List[i].GetMaxY() + 1)) / (src2List[j].GetMaxY() - src2List[j].GetMinY() + 1);
-					float sizeRatio = (heightRatio * src2List[j].GetNumPix()) / src1List[i].GetNumPix();
-					float diffMinX = (float)std::abs(src1List[i].GetMinX() - src2List[j].GetMinX());
-					float diffMaxX = (float)std::abs(src1List[i].GetMaxX() - src2List[j].GetMaxX());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinX < distanceThreshold && diffMaxX < distanceThreshold);
-				}
-				else if (src1List[i].GetMaxY() == src1Y.rows - 1) {
-					float heightRatio = ((float)(src1Y.rows - src1List[i].GetMinY() - 1)) / (src2List[j].GetMaxY() - src2List[j].GetMinY() + 1);
-					float sizeRatio = (heightRatio * src2List[j].GetNumPix()) / src1List[i].GetNumPix();
-					float diffMinX = (float)std::abs(src1List[i].GetMinX() - src2List[j].GetMinX());
-					float diffMaxX = (float)std::abs(src1List[i].GetMaxX() - src2List[j].GetMaxX());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinX < distanceThreshold && diffMaxX < distanceThreshold);
-				}
-				else if (src2List[j].GetMinX() == 0) {
-					float widthRatio = ((float)(src2List[j].GetMaxX() + 1)) / (src1List[i].GetMaxX() - src1List[i].GetMinX() + 1);
-					float sizeRatio = (widthRatio * src1List[i].GetNumPix()) / src2List[j].GetNumPix();
-					float diffMinY = (float)std::abs(src1List[i].GetMinY() - src2List[j].GetMinY());
-					float diffMaxY = (float)std::abs(src1List[i].GetMaxY() - src2List[j].GetMaxY());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinY < distanceThreshold && diffMaxY < distanceThreshold);
-				}
-				else if (src2List[j].GetMaxX() == src2Y.cols - 1) {
-					float widthRatio = ((float)(src2Y.cols - src2List[j].GetMinX() - 1)) / (src1List[i].GetMaxX() - src1List[i].GetMinX() + 1);
-					float sizeRatio = (widthRatio * src1List[i].GetNumPix()) / src2List[j].GetNumPix();
-					float diffMinY = (float)std::abs(src1List[i].GetMinY() - src2List[j].GetMinY());
-					float diffMaxY = (float)std::abs(src1List[i].GetMaxY() - src2List[j].GetMaxY());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinY < distanceThreshold && diffMaxY < distanceThreshold);
-				}
-				else if (src2List[j].GetMinY() == 0) {
-					float heightRatio = ((float)(src2List[j].GetMaxY() + 1)) / (src1List[i].GetMaxY() - src1List[i].GetMinY() + 1);
-					float sizeRatio = (heightRatio * src1List[i].GetNumPix()) / src2List[j].GetNumPix();
-					float diffMinX = (float)std::abs(src1List[i].GetMinX() - src2List[j].GetMinX());
-					float diffMaxX = (float)std::abs(src1List[i].GetMaxX() - src2List[j].GetMaxX());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinX < distanceThreshold && diffMaxX < distanceThreshold);
-				}
-				else if (src2List[j].GetMaxY() == src2Y.rows - 1) {
-					float heightRatio = ((float)(src2Y.rows - src2List[j].GetMinY() - 1)) / (src1List[i].GetMaxY() - src1List[i].GetMinY() + 1);
-					float sizeRatio = (heightRatio * src1List[i].GetNumPix()) / src2List[j].GetNumPix();
-					float diffMinX = (float)std::abs(src1List[i].GetMinX() - src2List[j].GetMinX());
-					float diffMaxX = (float)std::abs(src1List[i].GetMaxX() - src2List[j].GetMaxX());
-					matching = (sizeRatio <= 2.0f && sizeRatio >= .5f && diffMinX < distanceThreshold && diffMaxX < distanceThreshold);
-				}
-
-				if (matching) {
-					src1List.erase(src1List.begin() + i);
-					src2List.erase(src2List.begin() + j);
-					//std::cout << "Found match " << i << "-" << j << " with offset: " << diffX << "," << diffY << std::endl;
-					offsetX += diffX + delt.x;
-					offsetY += diffY + delt.y;
-					matches++;
-					std::cout << " MatchEdgeSMR matches is   " << matches<< std::endl;
-					break;
-				}
-				
-			}
-		}
-	}
-}
-
 //checks SMR list and removes SMRs that are incorrect shape or color (will probably need to modify several things here for new camera)
 void ImageProcessor::RemoveBadSMRs(std::vector<SMR>& src1List, cv::Mat src1Y,  cv::Mat src1U, cv::Mat src1V, float& offsetX, float& offsetY, ImgDelta delta, int distanceThreshold, float imgHeight) {
+
+
+	// A vector to store the centers of the objects that passed the checks if they are too close to each other
+    std::vector<cv::Point2f> centers;
+	int centerThreshold = 200; // in pixels 
 
 	int ignoreBorder = 3 * distanceThreshold / 4;
 	float narrowRatio = 1.8f;
@@ -705,6 +518,36 @@ void ImageProcessor::RemoveBadSMRs(std::vector<SMR>& src1List, cv::Mat src1Y,  c
 
 		float centerX = src1List[i].GetCenterX();
 		float centerY = src1List[i].GetCenterY();
+
+		// Flag to check if the current object is too close to any other object
+        bool tooClose = false;
+
+        // Only compare if centers vector is not empty
+        if (!centers.empty()) {
+            // Compare the current object's center to all previously detected centers
+            for (const auto& center : centers) {
+                // distance formula
+                float dx = center.x - centerX;
+                float dy = center.y - centerY;
+                float dist = std::sqrt(dx * dx + dy * dy);  // Calculate the distance
+
+				//std::cout << "dist: " << dist << std::endl;
+                // If the distance is smaller than the threshold, mark as too close
+                if (dist < centerThreshold) {
+                    tooClose = true;
+                    break;
+                }
+            }
+        }
+
+        // If too close to another center, remove this one
+        if (tooClose) {
+            src1List.erase(src1List.begin() + i);
+            continue;
+        }
+
+        // Add the current center to the list of centers
+        centers.push_back(cv::Point2f(centerX, centerY));
 
 		if (!IsColorReflection(smrROI, src1Y, src1U, src1V, centerX, centerY, size, 50, false)) {
 			src1List.erase(src1List.begin() + i);
@@ -836,13 +679,6 @@ void ImageProcessor::PartialSMRSearch(cv::Rect area, std::vector<SMR>& list, cv:
 			else {
 				index1 = -1;
 			}
-			// if ((uint8_t) s2[j] > bright_thresh) {
-			// 	//std::cout << "2: " << (int)s4[j] << " - " << i << ", " << j << std::endl;
-			// 	AssignPixelToSMR((double)j, (double)i, list2, index2);
-			// }
-			// else {
-			// 	index2 = -1;
-			// }
 		}
 	}
 }
@@ -850,7 +686,7 @@ void ImageProcessor::PartialSMRSearch(cv::Rect area, std::vector<SMR>& list, cv:
 //assigns pixels in one image to SMRs based on brightness
 void ImageProcessor::LaserSearch(std::vector<SMR>& laserList, cv::Mat srcY) {
 
-	//std::cout << "Laser Search" << std::endl;
+	// std::cout << "Laser Search" << std::endl;
 	uchar *sy;
 	int index1 = -1;
 	for (int i = 0; i < srcY.rows; i++) {
@@ -896,43 +732,6 @@ void ImageProcessor::AssignPixelToSMR(double x, double y, std::vector<SMR>& list
 	}
 
 }
-//have tried to make this function more efficient below
-
-//combine SMRs that are close enough (mostly for combining partial SMRs from different search regions, but can also cluster slightly malformed SMRs)
-// std::vector<SMR> ImageProcessor::combineSMRs(std::vector<SMR>& list) {
-// 	std::vector<SMR> combined;
-// 	while (!list.empty()) {
-// 		SMR current = list[0];
-// 		list.erase(list.begin());
-// 		bool noMatches = false;
-// 		while (!noMatches) {
-// 			noMatches = true;
-// 			for (int i = 0; i < list.size(); i++) {
-// 				if (SMRsTouching(current, list[i])) {
-// 					noMatches = false;
-// 					current = SMR(current, list[i]);
-// 					list.erase(list.begin() + i);
-// 					break;
-// 				}
-// 			}
-// 		}
-// 		noMatches = false;
-// 		while (!noMatches) {
-// 			noMatches = true;
-// 			for (int i = 0; i < combined.size(); i++) {
-// 				if (SMRsTouching(current, combined[i])) {
-// 					noMatches = false;
-// 					current = SMR(current, combined[i]);
-// 					combined.erase(combined.begin() + i);
-// 					break;
-// 				}
-// 			}
-// 		}
-// 		if (current.GetNumPix() >= 3)
-// 			combined.push_back(current);
-// 	}
-// 	return combined;
-// }
 
 // Iterate over SMRs and check if current SMR can be combined with that of in the list
 std::vector<SMR> ImageProcessor::combineSMRs(std::vector<SMR>& list) {

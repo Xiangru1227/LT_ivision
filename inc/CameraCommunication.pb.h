@@ -49,6 +49,9 @@ namespace CameraCommunication {
 class Acknowledgement;
 struct AcknowledgementDefaultTypeInternal;
 extern AcknowledgementDefaultTypeInternal _Acknowledgement_default_instance_;
+class CentroidData;
+struct CentroidDataDefaultTypeInternal;
+extern CentroidDataDefaultTypeInternal _CentroidData_default_instance_;
 class Commands;
 struct CommandsDefaultTypeInternal;
 extern CommandsDefaultTypeInternal _Commands_default_instance_;
@@ -61,6 +64,7 @@ extern VideoDataDefaultTypeInternal _VideoData_default_instance_;
 }  // namespace CameraCommunication
 PROTOBUF_NAMESPACE_OPEN
 template<> ::CameraCommunication::Acknowledgement* Arena::CreateMaybeMessage<::CameraCommunication::Acknowledgement>(Arena*);
+template<> ::CameraCommunication::CentroidData* Arena::CreateMaybeMessage<::CameraCommunication::CentroidData>(Arena*);
 template<> ::CameraCommunication::Commands* Arena::CreateMaybeMessage<::CameraCommunication::Commands>(Arena*);
 template<> ::CameraCommunication::SMRData* Arena::CreateMaybeMessage<::CameraCommunication::SMRData>(Arena*);
 template<> ::CameraCommunication::VideoData* Arena::CreateMaybeMessage<::CameraCommunication::VideoData>(Arena*);
@@ -89,12 +93,18 @@ enum MethodId : int {
   NextSMR = 18,
   UserClick = 19,
   GetVersionNumber = 20,
+  EnterIprobeMode = 21,
+  ExitIprobeMode = 22,
+  GetFCinFB = 23,
+  SetExposureMode = 24,
+  GetFullResolutionImage = 25,
+  GetCameraIntrinsicMatrix = 26,
   MethodId_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
   MethodId_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
 bool MethodId_IsValid(int value);
 constexpr MethodId MethodId_MIN = CalibrationParameters;
-constexpr MethodId MethodId_MAX = GetVersionNumber;
+constexpr MethodId MethodId_MAX = GetCameraIntrinsicMatrix;
 constexpr int MethodId_ARRAYSIZE = MethodId_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* MethodId_descriptor();
@@ -110,6 +120,31 @@ inline bool MethodId_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, MethodId* value) {
   return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<MethodId>(
     MethodId_descriptor(), name, value);
+}
+enum ExposureMode : int {
+  Indoor = 0,
+  Outdoor = 1,
+  ExposureMode_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+  ExposureMode_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+bool ExposureMode_IsValid(int value);
+constexpr ExposureMode ExposureMode_MIN = Indoor;
+constexpr ExposureMode ExposureMode_MAX = Outdoor;
+constexpr int ExposureMode_ARRAYSIZE = ExposureMode_MAX + 1;
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* ExposureMode_descriptor();
+template<typename T>
+inline const std::string& ExposureMode_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ExposureMode>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ExposureMode_Name.");
+  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
+    ExposureMode_descriptor(), enum_t_value);
+}
+inline bool ExposureMode_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ExposureMode* value) {
+  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<ExposureMode>(
+    ExposureMode_descriptor(), name, value);
 }
 enum IVisionOpMode : int {
   Idle = 0,
@@ -268,6 +303,7 @@ class Commands final :
     kParametersFieldNumber = 2,
     kMethodFieldNumber = 1,
     kOpmodeFieldNumber = 3,
+    kExposureModeFieldNumber = 4,
   };
   // repeated float parameters = 2;
   int parameters_size() const;
@@ -309,6 +345,15 @@ class Commands final :
   void _internal_set_opmode(::CameraCommunication::IVisionOpMode value);
   public:
 
+  // .CameraCommunication.ExposureMode exposure_mode = 4;
+  void clear_exposure_mode();
+  ::CameraCommunication::ExposureMode exposure_mode() const;
+  void set_exposure_mode(::CameraCommunication::ExposureMode value);
+  private:
+  ::CameraCommunication::ExposureMode _internal_exposure_mode() const;
+  void _internal_set_exposure_mode(::CameraCommunication::ExposureMode value);
+  public:
+
   // @@protoc_insertion_point(class_scope:CameraCommunication.Commands)
  private:
   class _Internal;
@@ -320,6 +365,7 @@ class Commands final :
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< float > parameters_;
     int method_;
     int opmode_;
+    int exposure_mode_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -450,6 +496,7 @@ class Acknowledgement final :
   enum : int {
     kParametersFieldNumber = 3,
     kParameterStringFieldNumber = 4,
+    kImageFieldNumber = 5,
     kMethodFieldNumber = 1,
     kSuccessFieldNumber = 2,
   };
@@ -489,6 +536,20 @@ class Acknowledgement final :
   std::string* _internal_mutable_parameter_string();
   public:
 
+  // bytes image = 5;
+  void clear_image();
+  const std::string& image() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_image(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_image();
+  PROTOBUF_NODISCARD std::string* release_image();
+  void set_allocated_image(std::string* image);
+  private:
+  const std::string& _internal_image() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_image(const std::string& value);
+  std::string* _internal_mutable_image();
+  public:
+
   // .CameraCommunication.MethodId method = 1;
   void clear_method();
   ::CameraCommunication::MethodId method() const;
@@ -517,6 +578,7 @@ class Acknowledgement final :
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< float > parameters_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr parameter_string_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr image_;
     int method_;
     bool success_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -711,6 +773,165 @@ class SMRData final :
 };
 // -------------------------------------------------------------------
 
+class CentroidData final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:CameraCommunication.CentroidData) */ {
+ public:
+  inline CentroidData() : CentroidData(nullptr) {}
+  ~CentroidData() override;
+  explicit PROTOBUF_CONSTEXPR CentroidData(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  CentroidData(const CentroidData& from);
+  CentroidData(CentroidData&& from) noexcept
+    : CentroidData() {
+    *this = ::std::move(from);
+  }
+
+  inline CentroidData& operator=(const CentroidData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CentroidData& operator=(CentroidData&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CentroidData& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const CentroidData* internal_default_instance() {
+    return reinterpret_cast<const CentroidData*>(
+               &_CentroidData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  friend void swap(CentroidData& a, CentroidData& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(CentroidData* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CentroidData* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CentroidData* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<CentroidData>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const CentroidData& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const CentroidData& from) {
+    CentroidData::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(CentroidData* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "CameraCommunication.CentroidData";
+  }
+  protected:
+  explicit CentroidData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kXFieldNumber = 1,
+    kYFieldNumber = 2,
+  };
+  // float x = 1;
+  void clear_x();
+  float x() const;
+  void set_x(float value);
+  private:
+  float _internal_x() const;
+  void _internal_set_x(float value);
+  public:
+
+  // float y = 2;
+  void clear_y();
+  float y() const;
+  void set_y(float value);
+  private:
+  float _internal_y() const;
+  void _internal_set_y(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:CameraCommunication.CentroidData)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    float x_;
+    float y_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_CameraCommunication_2eproto;
+};
+// -------------------------------------------------------------------
+
 class VideoData final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:CameraCommunication.VideoData) */ {
  public:
@@ -759,7 +980,7 @@ class VideoData final :
                &_VideoData_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   friend void swap(VideoData& a, VideoData& b) {
     a.Swap(&b);
@@ -832,11 +1053,30 @@ class VideoData final :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kCentroidFieldNumber = 5,
     kImageFieldNumber = 1,
     kSmrFieldNumber = 2,
     kTimestampFieldNumber = 4,
     kOpmodeFieldNumber = 3,
   };
+  // repeated .CameraCommunication.CentroidData centroid = 5;
+  int centroid_size() const;
+  private:
+  int _internal_centroid_size() const;
+  public:
+  void clear_centroid();
+  ::CameraCommunication::CentroidData* mutable_centroid(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::CameraCommunication::CentroidData >*
+      mutable_centroid();
+  private:
+  const ::CameraCommunication::CentroidData& _internal_centroid(int index) const;
+  ::CameraCommunication::CentroidData* _internal_add_centroid();
+  public:
+  const ::CameraCommunication::CentroidData& centroid(int index) const;
+  ::CameraCommunication::CentroidData* add_centroid();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::CameraCommunication::CentroidData >&
+      centroid() const;
+
   // bytes image = 1;
   void clear_image();
   const std::string& image() const;
@@ -895,6 +1135,7 @@ class VideoData final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::CameraCommunication::CentroidData > centroid_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr image_;
     ::CameraCommunication::SMRData* smr_;
     uint64_t timestamp_;
@@ -1000,6 +1241,26 @@ inline void Commands::_internal_set_opmode(::CameraCommunication::IVisionOpMode 
 inline void Commands::set_opmode(::CameraCommunication::IVisionOpMode value) {
   _internal_set_opmode(value);
   // @@protoc_insertion_point(field_set:CameraCommunication.Commands.opmode)
+}
+
+// .CameraCommunication.ExposureMode exposure_mode = 4;
+inline void Commands::clear_exposure_mode() {
+  _impl_.exposure_mode_ = 0;
+}
+inline ::CameraCommunication::ExposureMode Commands::_internal_exposure_mode() const {
+  return static_cast< ::CameraCommunication::ExposureMode >(_impl_.exposure_mode_);
+}
+inline ::CameraCommunication::ExposureMode Commands::exposure_mode() const {
+  // @@protoc_insertion_point(field_get:CameraCommunication.Commands.exposure_mode)
+  return _internal_exposure_mode();
+}
+inline void Commands::_internal_set_exposure_mode(::CameraCommunication::ExposureMode value) {
+  
+  _impl_.exposure_mode_ = value;
+}
+inline void Commands::set_exposure_mode(::CameraCommunication::ExposureMode value) {
+  _internal_set_exposure_mode(value);
+  // @@protoc_insertion_point(field_set:CameraCommunication.Commands.exposure_mode)
 }
 
 // -------------------------------------------------------------------
@@ -1143,6 +1404,56 @@ inline void Acknowledgement::set_allocated_parameter_string(std::string* paramet
   // @@protoc_insertion_point(field_set_allocated:CameraCommunication.Acknowledgement.parameter_string)
 }
 
+// bytes image = 5;
+inline void Acknowledgement::clear_image() {
+  _impl_.image_.ClearToEmpty();
+}
+inline const std::string& Acknowledgement::image() const {
+  // @@protoc_insertion_point(field_get:CameraCommunication.Acknowledgement.image)
+  return _internal_image();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void Acknowledgement::set_image(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.image_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:CameraCommunication.Acknowledgement.image)
+}
+inline std::string* Acknowledgement::mutable_image() {
+  std::string* _s = _internal_mutable_image();
+  // @@protoc_insertion_point(field_mutable:CameraCommunication.Acknowledgement.image)
+  return _s;
+}
+inline const std::string& Acknowledgement::_internal_image() const {
+  return _impl_.image_.Get();
+}
+inline void Acknowledgement::_internal_set_image(const std::string& value) {
+  
+  _impl_.image_.Set(value, GetArenaForAllocation());
+}
+inline std::string* Acknowledgement::_internal_mutable_image() {
+  
+  return _impl_.image_.Mutable(GetArenaForAllocation());
+}
+inline std::string* Acknowledgement::release_image() {
+  // @@protoc_insertion_point(field_release:CameraCommunication.Acknowledgement.image)
+  return _impl_.image_.Release();
+}
+inline void Acknowledgement::set_allocated_image(std::string* image) {
+  if (image != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.image_.SetAllocated(image, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.image_.IsDefault()) {
+    _impl_.image_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:CameraCommunication.Acknowledgement.image)
+}
+
 // -------------------------------------------------------------------
 
 // SMRData
@@ -1239,6 +1550,50 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >*
 SMRData::mutable_y() {
   // @@protoc_insertion_point(field_mutable_list:CameraCommunication.SMRData.y)
   return _internal_mutable_y();
+}
+
+// -------------------------------------------------------------------
+
+// CentroidData
+
+// float x = 1;
+inline void CentroidData::clear_x() {
+  _impl_.x_ = 0;
+}
+inline float CentroidData::_internal_x() const {
+  return _impl_.x_;
+}
+inline float CentroidData::x() const {
+  // @@protoc_insertion_point(field_get:CameraCommunication.CentroidData.x)
+  return _internal_x();
+}
+inline void CentroidData::_internal_set_x(float value) {
+  
+  _impl_.x_ = value;
+}
+inline void CentroidData::set_x(float value) {
+  _internal_set_x(value);
+  // @@protoc_insertion_point(field_set:CameraCommunication.CentroidData.x)
+}
+
+// float y = 2;
+inline void CentroidData::clear_y() {
+  _impl_.y_ = 0;
+}
+inline float CentroidData::_internal_y() const {
+  return _impl_.y_;
+}
+inline float CentroidData::y() const {
+  // @@protoc_insertion_point(field_get:CameraCommunication.CentroidData.y)
+  return _internal_y();
+}
+inline void CentroidData::_internal_set_y(float value) {
+  
+  _impl_.y_ = value;
+}
+inline void CentroidData::set_y(float value) {
+  _internal_set_y(value);
+  // @@protoc_insertion_point(field_set:CameraCommunication.CentroidData.y)
 }
 
 // -------------------------------------------------------------------
@@ -1425,9 +1780,51 @@ inline void VideoData::set_timestamp(uint64_t value) {
   // @@protoc_insertion_point(field_set:CameraCommunication.VideoData.timestamp)
 }
 
+// repeated .CameraCommunication.CentroidData centroid = 5;
+inline int VideoData::_internal_centroid_size() const {
+  return _impl_.centroid_.size();
+}
+inline int VideoData::centroid_size() const {
+  return _internal_centroid_size();
+}
+inline void VideoData::clear_centroid() {
+  _impl_.centroid_.Clear();
+}
+inline ::CameraCommunication::CentroidData* VideoData::mutable_centroid(int index) {
+  // @@protoc_insertion_point(field_mutable:CameraCommunication.VideoData.centroid)
+  return _impl_.centroid_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::CameraCommunication::CentroidData >*
+VideoData::mutable_centroid() {
+  // @@protoc_insertion_point(field_mutable_list:CameraCommunication.VideoData.centroid)
+  return &_impl_.centroid_;
+}
+inline const ::CameraCommunication::CentroidData& VideoData::_internal_centroid(int index) const {
+  return _impl_.centroid_.Get(index);
+}
+inline const ::CameraCommunication::CentroidData& VideoData::centroid(int index) const {
+  // @@protoc_insertion_point(field_get:CameraCommunication.VideoData.centroid)
+  return _internal_centroid(index);
+}
+inline ::CameraCommunication::CentroidData* VideoData::_internal_add_centroid() {
+  return _impl_.centroid_.Add();
+}
+inline ::CameraCommunication::CentroidData* VideoData::add_centroid() {
+  ::CameraCommunication::CentroidData* _add = _internal_add_centroid();
+  // @@protoc_insertion_point(field_add:CameraCommunication.VideoData.centroid)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::CameraCommunication::CentroidData >&
+VideoData::centroid() const {
+  // @@protoc_insertion_point(field_list:CameraCommunication.VideoData.centroid)
+  return _impl_.centroid_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -1445,6 +1842,11 @@ template <> struct is_proto_enum< ::CameraCommunication::MethodId> : ::std::true
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::CameraCommunication::MethodId>() {
   return ::CameraCommunication::MethodId_descriptor();
+}
+template <> struct is_proto_enum< ::CameraCommunication::ExposureMode> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::CameraCommunication::ExposureMode>() {
+  return ::CameraCommunication::ExposureMode_descriptor();
 }
 template <> struct is_proto_enum< ::CameraCommunication::IVisionOpMode> : ::std::true_type {};
 template <>

@@ -60,19 +60,19 @@ bool SDKCommunicator::close() {
 
 
 //send a jpeg encoded image from buffer to video streaming channel
-//bool SDKCommunicator::sendImageBuffer(char* buf, unsigned long data_size, std::vector<ImagePoint> smrs, uint64_t Timestamp) {
-bool SDKCommunicator::sendImageBuffer(char* buf, unsigned long data_size, std::vector<ImagePoint> smrs) {
-	//std::string response = CreateVideoData(buf, data_size, smrs, Timestamp);
-	std::string response = CreateVideoData(buf, data_size, smrs);
+bool SDKCommunicator::sendImageBuffer(char* buf, unsigned long data_size, std::vector<ImagePoint> smrs, std::vector<cv::Point2f> detectedCentroids, uint64_t Timestamp) {
+//bool SDKCommunicator::sendImageBuffer(char* buf, unsigned long data_size, std::vector<ImagePoint> smrs) {
+	// std::cout << "Sending image buffer." << std::endl;
+	std::string response = CreateVideoData(buf, data_size, smrs, detectedCentroids, Timestamp);
+	//std::string response = CreateVideoData(buf, data_size, smrs);
 	return sendToVideo((char*)response.data(), response.size());
 }
 
 
 //generate acknowledgement and send it to communication channel
-bool SDKCommunicator::sendAck(CameraCommunication::MethodId method, bool success, std::vector<float> params, std::vector<std::string> msg) {
-	std::string response = CreateAck(method, success, params, msg);
-	//std::ofstream os("AckSentLog.txt", std::ios::app);
-	//os << "Method " << method << " success" << success << "\n";
+bool SDKCommunicator::sendAck(CameraCommunication::MethodId method, bool success, std::vector<float> params, std::vector<std::string> msg, const char* imageBuffer, unsigned long imageSize) {
+	std::string response = CreateAck(method, success, params, msg, imageBuffer, imageSize);
+	// std::cout << "size: " << imageSize << std::endl;
 	return sendToComm((char*)response.data(), response.size());
 }
 
@@ -259,111 +259,226 @@ bool SDKCommunicator::updateControls(CameraCommunication::Commands *cmd) {
 	switch(cmd->method()) {
 		//get calibration parameters
 		case CameraCommunication::CalibrationParameters:
+		{
 			updateGetCalibration();
+			sendAck(CameraCommunication::CalibrationParameters, true, std::vector<float>());
 		break;
+		}
 		//start video streaming
 		case CameraCommunication::StartVideo:
 			updateVideoOn(true);
+			sendAck(CameraCommunication::StartVideo, true);
 		break;
 		//stop video streaming
 		case CameraCommunication::StopVideo:
 			updateVideoOn(false);
+			sendAck(CameraCommunication::StopVideo, true);
 		break;
 		//get exposure
 		case CameraCommunication::GetExposure:
+		{
 			updateGetExposure();
 		break;
+		}
 		//set serialNumber
 		case CameraCommunication::GetVersionNumber:
+		{
 			updateGetFWVersion();
+			std::string msg;
+			msg.append(std::to_string(MAJOR_REVISION));
+			msg.append(".");
+			msg.append(std::to_string(MINOR_REVISION));
+			sendAck(CameraCommunication::GetVersionNumber, true, std::vector<float>(), CreateMsgList(msg));
 		break;
+		}
 		//set exposure
 		case CameraCommunication::SetExposure:
+		{
 			if (cmd->parameters_size() > 0)
 				updateSetExposure(cmd->parameters(0));
 		break;
+		}
 		//get digital gain
 		case CameraCommunication::GetDigitalGain:
+		{
 			updateGetDigitalGain();
 		break;
+		}
 		//set digital gain
 		case CameraCommunication::SetDigitalGain:
+		{
 			if (cmd->parameters_size() > 0)
 				updateSetDigitalGain(cmd->parameters(0));
 		break;
+		}
 		//set video ROI
 		case CameraCommunication::SetROIVideoStream:
+		{
 			if (cmd->parameters_size() >= 4)
 				updateSetVideoROI(cmd->parameters(0), cmd->parameters(1), cmd->parameters(2), cmd->parameters(3));
+
 		break;
+		}
 		//broadcast
 		case CameraCommunication::BroadcastCamera:
 
 		break;
 		//get analog gain
 		case CameraCommunication::GetAnalogGain:
+		{
 			updateGetAnalogGain();
 		break;
+		}
 		//set analog gain
 		case CameraCommunication::SetAnalogGain:
+		{
 			if (cmd->parameters_size() > 0)
 				updateSetAnalogGain(cmd->parameters(0));
 		break;
+		}
 		//get frames per second
 		case CameraCommunication::GetFPS:
+		{
 			updateGetFPS();
 		break;
+		}
 		//set frames per second
 		case CameraCommunication::SetFPS:
+		{
 			if (cmd->parameters_size() > 0)
 				updateSetFPS(cmd->parameters(0));
 		break;
+		}
 		//get sensor resolution
 		case CameraCommunication::GetSensorResolution:
+		{
 			updateGetSensorRes();
-		break;
+		}
 		//set sensor resolution
 		case CameraCommunication::SetSensorResolution:
+		{
 			if (cmd->parameters_size() >= 2)
 				updateSetSensorRes(cmd->parameters(0), cmd->parameters(1));
 		break;
+		}
 		//get display resolution
 		case CameraCommunication::GetDisplayResolution:
+		{
 			updateGetDisplayRes();
 		break;
+		}
 		//set display resolution
 		case CameraCommunication::SetDisplayResolution:
+		{
 			if (cmd->parameters_size() >= 2)
 				updateSetDisplayRes(cmd->parameters(0), cmd->parameters(1));
 		break;
+		}
 		//command to move to next SMR
 		case CameraCommunication::NextSMR:
 			updateNextSMR();
 		break;
 		//handle user click
 		case CameraCommunication::UserClick:
-			if (cmd->parameters_size() >= 2)
+		{
+			if (cmd->parameters_size() >= 2){
 				updateUserClick(cmd->parameters(0), cmd->parameters(1));
+				sendAck(CameraCommunication::UserClick, true);
+			}
 		break;
+		}
+
+		//enter iProbe mode
+		case CameraCommunication::EnterIprobeMode:
+		{
+			updateEnterIprobeMode();
+			sendAck(CameraCommunication::EnterIprobeMode, true);
+		break;
+		}
+		
+		//exit iProbe mode
+		case CameraCommunication::ExitIprobeMode:
+		{
+			updateExitIprobeMode();
+			sendAck(CameraCommunication::ExitIprobeMode, true);
+		break;
+		}
+
+		//get extrinsic mat
+		case CameraCommunication::GetFCinFB:
+		{
+			updateGetFCinFB();
+		break;
+		}
+
+		//get intrinsic mat
+		case CameraCommunication::GetCameraIntrinsicMatrix:
+		{
+			updateGetIntMat();
+		break;
+		}
+
+		//get outdoor mode
+		case CameraCommunication::SetExposureMode:
+		{	
+			if (cmd->exposure_mode() == CameraCommunication::Indoor){
+				updateExposureMode(Indoor);
+				std::cout << "Setting exposure mode to indoor sdk" << std::endl;
+				sendAck(CameraCommunication::SetExposureMode, true);
+			}
+			else if (cmd->exposure_mode() == CameraCommunication::Outdoor){
+				updateExposureMode(Outdoor);
+				std::cout << "Setting exposure mode to outdoor sdk" << std::endl;
+				sendAck(CameraCommunication::SetExposureMode, true);
+			}
+			break;
+		}
+
 		//set iVision op mode
 		case CameraCommunication::SetOpMode:
-			if (cmd->opmode() == CameraCommunication::Idle)
+		{
+			if (cmd->opmode() == CameraCommunication::Idle){
 				updateState(Video);
-			else if (cmd->opmode() == CameraCommunication::SingleSMR)
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
+			else if (cmd->opmode() == CameraCommunication::SingleSMR){
 				updateState(SingleSMR);
-			else if (cmd->opmode() == CameraCommunication::MultiSMR)
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
+			else if (cmd->opmode() == CameraCommunication::MultiSMR){
 				updateState(MultiSMR);
-			else if (cmd->opmode() == CameraCommunication::ManualSMR)
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
+			else if (cmd->opmode() == CameraCommunication::ManualSMR){
 				updateState(ManualSMR);
-			else if (cmd->opmode() == CameraCommunication::Teach2Drive)
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
+			else if (cmd->opmode() == CameraCommunication::Teach2Drive){
 				updateState(Teach2Drive);
-			else if (cmd->opmode() == CameraCommunication::Shake2Drive)
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
+			else if (cmd->opmode() == CameraCommunication::Shake2Drive){
 				updateState(Shake2Drive);
-			else if (cmd->opmode() == CameraCommunication::CamCalibration)
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
+			else if (cmd->opmode() == CameraCommunication::CamCalibration){
 				updateState(Calibration3);
-			else if (cmd->opmode() == CameraCommunication::TrackCalibration)
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
+			else if (cmd->opmode() == CameraCommunication::TrackCalibration){
 				updateState(Calibration);
+				sendAck(CameraCommunication::SetOpMode, true);
+			}
 		break;
+		}
+
+		//get Full Resolution Image in Jpeg
+		case CameraCommunication::GetFullResolutionImage:
+		{
+			updateGetFullResImg();
+		break;
+		}
+
 		default:
 			
 		break;
@@ -494,14 +609,64 @@ void SDKCommunicator::updateState(StateEnum st) {
 	receivedStateChange = true;
 }
 
-void SDKCommunicator::updateGetFWVersion(){
+void SDKCommunicator::updateExposureMode(ExposureMode exp) {
+	if(exp == Indoor){
+		state.flags.indoor_exp = true;
+		state.flags.outdoor_exp = false;
+		std::cout << "Setting exposure mode to indoor." << std::endl;
+	}
+	else if(exp == Outdoor) {
+		state.flags.outdoor_exp = true;
+		state.flags.indoor_exp = false;
+		std::cout << "Setting exposure mode to outdoor." << std::endl;
+	}
+}
+
+void SDKCommunicator::updateEnterIprobeMode() {
+	state.flags.enter_iprobe = true;
+}
+
+void SDKCommunicator::updateExitIprobeMode() {
+	state.flags.exit_iprobe = true;
+}
+
+void SDKCommunicator::updateGetFCinFB() {
+	state.flags.get_FC_in_FB = true;
+}
+
+void SDKCommunicator::updateGetIntMat() {
+	state.flags.get_int_mat = true;
+}
+
+void SDKCommunicator::updateGetFWVersion() {
 	state.flags.get_version_number = true;
 }
 
+void SDKCommunicator::updateGetFullResImg() {
+	state.flags.send_full_res_img = true;
+}
 
+//add parameters to list to send in acknowledgement to SDK
+std::vector<float> SDKCommunicator::CreateParamList(float param1, float param2, float param3, float param4) {
+	std::vector<float> list;
+	if (param1 >= 0) list.push_back(param1);
+    if (param2 >= 0) list.push_back(param2);
+    if (param3 >= 0) list.push_back(param3);
+    if (param4 >= 0) list.push_back(param4);
+}
+
+//string param to send string to sdk
+std::vector<std::string> SDKCommunicator::CreateMsgList(std::string message1) {
+	std::vector<std::string> list;
+
+	list.push_back(message1);
+	// if (!message2.empty())
+	// 	list.push_back(message1);
+	return list;
+}
 
 //given message components, serialize the data into a buffer (wrapped in a string) so that it's ready to send
-std::string SDKCommunicator::CreateAck(CameraCommunication::MethodId method, bool success, std::vector<float> params, std::vector<std::string> msg) {
+std::string SDKCommunicator::CreateAck(CameraCommunication::MethodId method, bool success, std::vector<float> params, std::vector<std::string> msg, const char* imageBuffer, unsigned long imageSize) {
 
 	//create acknowledgement (protobuf object)
 	CameraCommunication::Acknowledgement ack;
@@ -512,6 +677,29 @@ std::string SDKCommunicator::CreateAck(CameraCommunication::MethodId method, boo
 	
 	for (int i = 0; i < msg.size(); i++)
 		ack.set_parameter_string(msg[i]);
+	
+	if (imageBuffer && imageSize > 0) {
+		std::string imageStr(imageBuffer, imageSize);
+		ack.set_image(imageStr);
+		
+		// std::cout << "imageStr size: " << imageStr.size() << std::endl;
+		// std::cout << "Image buffer head: ";
+		// for (int i = 0; i < 8 && i < imageStr.size(); ++i)
+		// 	std::cout << std::hex << std::setw(2) << std::setfill('0') 
+		// 			<< (static_cast<unsigned int>(static_cast<unsigned char>(imageStr[i]))) << " ";
+		// std::cout << std::dec << std::endl;
+	}
+
+	// static int frame_idx = 0;
+    // std::string filename = "fullres_" + std::to_string(frame_idx) + ".jpg";
+    // std::ofstream fout(filename, std::ios::binary);
+    // if (fout.is_open()) {
+    //     fout.write(imageBuffer, imageSize);
+    //     fout.close();
+    //     std::cout << "Saved image to " << filename << " (" << imageSize << " bytes)" << std::endl;
+    // } else {
+    //     std::cerr << "Failed to write image file: " << filename << std::endl;
+    // }
 
 	//serialize acknowledgement and return string
 	int size = (int)ack.ByteSize() + 4;
@@ -528,7 +716,12 @@ std::string SDKCommunicator::CreateAck(CameraCommunication::MethodId method, boo
 }
 
 //given image data and list of observed SMRs, serialize the data into a buffer to send to SDK
-std::string SDKCommunicator::CreateVideoData(char* buf, unsigned long data_size, std::vector<ImagePoint> smrs, uint64_t Timestamp) {
+std::string SDKCommunicator::CreateVideoData(char* buf, 
+											 unsigned long data_size, 
+											 std::vector<ImagePoint> smrs, 
+											 std::vector<cv::Point2f> detectedCentroids, 
+											 uint64_t Timestamp) {
+//std::string SDKCommunicator::CreateVideoData(char* buf, unsigned long data_size, std::vector<ImagePoint> smrs) {
 
 	std::string img_data(buf, data_size);
 	CameraCommunication::VideoData vid;
@@ -537,6 +730,13 @@ std::string SDKCommunicator::CreateVideoData(char* buf, unsigned long data_size,
 		vid.mutable_smr()->add_x(smrs[i].x);
 		vid.mutable_smr()->add_y(smrs[i].y);
 	}
+
+	for (const auto& centroid : detectedCentroids) {
+        CameraCommunication::CentroidData* centroid_data = vid.add_centroid();
+        centroid_data->set_x(centroid.x);
+        centroid_data->set_y(centroid.y);
+    }
+
 	vid.set_opmode(CameraCommunication::Idle);
 	vid.set_timestamp(Timestamp);
 

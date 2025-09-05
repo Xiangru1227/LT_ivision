@@ -25,11 +25,15 @@ bool StateManualSMR::enterState() {
 
 	//reset tracking, targeter defaults to single SMR tracking, so just need to clear targets
 	cam->clearSMRTargets();
+	
+	if(firmware->is_Spiral()){
+		firmware->StopSearch();
+	}
 
 	//make sure camera has started video capture
 	usingCamera = true;
 	
-	//cam->stopVideo(); // stop the cam to set the image detection properties to the camera
+	cam->stopVideo(); // stop the cam to set the image detection properties to the camera
 	//load smart camera calibration data to prepare for SMR tracking
 	if (!cam->loadCalibration())
 		return false;
@@ -59,11 +63,20 @@ bool StateManualSMR::stateAction() {
 	// 	firmware->StopSearch();
 	// }
 	updateSMRTracking();
-	
 	TrackerInfo tkr = firmware->getTrackerInfo();
 
 	if(firmware->is_Spiral())
 		cam->Spiral_counter++;
+
+	// check for image intensity, exercise auto exposure if needed
+	if (cam->checkNeedsAutoExposure()){
+		cam->stopVideo();
+			if (!cam->loadCalibration())
+				return false;
+		cam->startVideo();
+	}
+
+
 	if (firmware->hasSMRLock()) {
 		// update SMR targeter (or perhaps tracker) with SMR distance, to improve future tracking, make sure targeter is ready to begin tracking again
 		cam->reportTrackerLock(true, tkr.az, tkr.el, cam->cam_auto_calib, tkr.distance / 1000, firmware->SMRStableDuration());
@@ -81,7 +94,17 @@ bool StateManualSMR::stateAction() {
 			firmware->setPSDLockFlag(false);
 		}
 		std::cout << "Tracker locked with distance: " << tkr.distance/1000 << std::endl;
-		usleep(100000);
+		
+		//auto exposure running during the lock
+		cam->auto_exp_counter++;
+		//std::cout <<"auto exp cntr:" << cam->auto_exp_counter << std::endl;
+		if(cam->auto_exp_counter >= cam->auto_exp_reset_interval){
+			cam->auto_exp_counter = 0;
+			cam->stopVideo();
+				if (!cam->loadCalibration())
+					return false;
+			cam->startVideo();
+		}
 		return true;
 	}
 	cam->reportTrackerLock(false, tkr.az, tkr.el);
@@ -105,10 +128,10 @@ bool StateManualSMR::stateAction() {
 	if (update_target) {
 		update_target = false;
 	}
-	if (mov.type == MoveBy) {
+	if (mov.type == MoveBy && firmware->trackerStill()) {
 		return firmware->sendMoveBy(mov.az, mov.el);
 	}
-	else if (mov.type == MoveTo) {
+	else if (mov.type == MoveTo && firmware->trackerStill()) {
 		return firmware->sendMoveTo(mov.az, mov.el, mov.radius);
 	}
 	else if (mov.type == Spiral) {

@@ -26,6 +26,7 @@ PROTOBUF_CONSTEXPR Commands::Commands(
     /*decltype(_impl_.parameters_)*/{}
   , /*decltype(_impl_.method_)*/0
   , /*decltype(_impl_.opmode_)*/0
+  , /*decltype(_impl_.exposure_mode_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct CommandsDefaultTypeInternal {
   PROTOBUF_CONSTEXPR CommandsDefaultTypeInternal()
@@ -40,6 +41,7 @@ PROTOBUF_CONSTEXPR Acknowledgement::Acknowledgement(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.parameters_)*/{}
   , /*decltype(_impl_.parameter_string_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.image_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.method_)*/0
   , /*decltype(_impl_.success_)*/false
   , /*decltype(_impl_._cached_size_)*/{}} {}
@@ -66,9 +68,24 @@ struct SMRDataDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SMRDataDefaultTypeInternal _SMRData_default_instance_;
+PROTOBUF_CONSTEXPR CentroidData::CentroidData(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.x_)*/0
+  , /*decltype(_impl_.y_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct CentroidDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CentroidDataDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CentroidDataDefaultTypeInternal() {}
+  union {
+    CentroidData _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CentroidDataDefaultTypeInternal _CentroidData_default_instance_;
 PROTOBUF_CONSTEXPR VideoData::VideoData(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.image_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+    /*decltype(_impl_.centroid_)*/{}
+  , /*decltype(_impl_.image_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.smr_)*/nullptr
   , /*decltype(_impl_.timestamp_)*/uint64_t{0u}
   , /*decltype(_impl_.opmode_)*/0
@@ -83,8 +100,8 @@ struct VideoDataDefaultTypeInternal {
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 VideoDataDefaultTypeInternal _VideoData_default_instance_;
 }  // namespace CameraCommunication
-static ::_pb::Metadata file_level_metadata_CameraCommunication_2eproto[4];
-static const ::_pb::EnumDescriptor* file_level_enum_descriptors_CameraCommunication_2eproto[2];
+static ::_pb::Metadata file_level_metadata_CameraCommunication_2eproto[5];
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_CameraCommunication_2eproto[3];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_CameraCommunication_2eproto = nullptr;
 
 const uint32_t TableStruct_CameraCommunication_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
@@ -97,6 +114,7 @@ const uint32_t TableStruct_CameraCommunication_2eproto::offsets[] PROTOBUF_SECTI
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::Commands, _impl_.method_),
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::Commands, _impl_.parameters_),
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::Commands, _impl_.opmode_),
+  PROTOBUF_FIELD_OFFSET(::CameraCommunication::Commands, _impl_.exposure_mode_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::Acknowledgement, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -107,6 +125,7 @@ const uint32_t TableStruct_CameraCommunication_2eproto::offsets[] PROTOBUF_SECTI
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::Acknowledgement, _impl_.success_),
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::Acknowledgement, _impl_.parameters_),
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::Acknowledgement, _impl_.parameter_string_),
+  PROTOBUF_FIELD_OFFSET(::CameraCommunication::Acknowledgement, _impl_.image_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::SMRData, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -115,6 +134,14 @@ const uint32_t TableStruct_CameraCommunication_2eproto::offsets[] PROTOBUF_SECTI
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::SMRData, _impl_.x_),
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::SMRData, _impl_.y_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::CameraCommunication::CentroidData, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::CameraCommunication::CentroidData, _impl_.x_),
+  PROTOBUF_FIELD_OFFSET(::CameraCommunication::CentroidData, _impl_.y_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::VideoData, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -125,55 +152,66 @@ const uint32_t TableStruct_CameraCommunication_2eproto::offsets[] PROTOBUF_SECTI
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::VideoData, _impl_.smr_),
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::VideoData, _impl_.opmode_),
   PROTOBUF_FIELD_OFFSET(::CameraCommunication::VideoData, _impl_.timestamp_),
+  PROTOBUF_FIELD_OFFSET(::CameraCommunication::VideoData, _impl_.centroid_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::CameraCommunication::Commands)},
-  { 9, -1, -1, sizeof(::CameraCommunication::Acknowledgement)},
-  { 19, -1, -1, sizeof(::CameraCommunication::SMRData)},
-  { 27, -1, -1, sizeof(::CameraCommunication::VideoData)},
+  { 10, -1, -1, sizeof(::CameraCommunication::Acknowledgement)},
+  { 21, -1, -1, sizeof(::CameraCommunication::SMRData)},
+  { 29, -1, -1, sizeof(::CameraCommunication::CentroidData)},
+  { 37, -1, -1, sizeof(::CameraCommunication::VideoData)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
   &::CameraCommunication::_Commands_default_instance_._instance,
   &::CameraCommunication::_Acknowledgement_default_instance_._instance,
   &::CameraCommunication::_SMRData_default_instance_._instance,
+  &::CameraCommunication::_CentroidData_default_instance_._instance,
   &::CameraCommunication::_VideoData_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_CameraCommunication_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\031CameraCommunication.proto\022\023CameraCommu"
-  "nication\"\201\001\n\010Commands\022-\n\006method\030\001 \001(\0162\035."
+  "nication\"\273\001\n\010Commands\022-\n\006method\030\001 \001(\0162\035."
   "CameraCommunication.MethodId\022\022\n\nparamete"
   "rs\030\002 \003(\002\0222\n\006opmode\030\003 \001(\0162\".CameraCommuni"
-  "cation.IVisionOpMode\"\177\n\017Acknowledgement\022"
-  "-\n\006method\030\001 \001(\0162\035.CameraCommunication.Me"
-  "thodId\022\017\n\007success\030\002 \001(\010\022\022\n\nparameters\030\003 "
-  "\003(\002\022\030\n\020parameter_string\030\004 \001(\t\"\037\n\007SMRData"
-  "\022\t\n\001x\030\001 \003(\002\022\t\n\001y\030\002 \003(\002\"\214\001\n\tVideoData\022\r\n\005"
-  "image\030\001 \001(\014\022)\n\003smr\030\002 \001(\0132\034.CameraCommuni"
-  "cation.SMRData\0222\n\006opmode\030\003 \001(\0162\".CameraC"
-  "ommunication.IVisionOpMode\022\021\n\ttimestamp\030"
-  "\004 \001(\004*\237\003\n\010MethodId\022\031\n\025CalibrationParamet"
-  "ers\020\000\022\016\n\nStartVideo\020\001\022\r\n\tStopVideo\020\002\022\017\n\013"
-  "GetExposure\020\003\022\017\n\013SetExposure\020\004\022\022\n\016GetDig"
-  "italGain\020\005\022\022\n\016SetDigitalGain\020\006\022\025\n\021SetROI"
-  "VideoStream\020\007\022\023\n\017BroadcastCamera\020\010\022\021\n\rGe"
-  "tAnalogGain\020\t\022\021\n\rSetAnalogGain\020\n\022\n\n\006GetF"
-  "PS\020\013\022\n\n\006SetFPS\020\014\022\027\n\023GetSensorResolution\020"
-  "\r\022\027\n\023SetSensorResolution\020\016\022\030\n\024GetDisplay"
-  "Resolution\020\017\022\030\n\024SetDisplayResolution\020\020\022\r"
-  "\n\tSetOpMode\020\021\022\013\n\007NextSMR\020\022\022\r\n\tUserClick\020"
-  "\023\022\024\n\020GetVersionNumber\020\024*\221\001\n\rIVisionOpMod"
-  "e\022\010\n\004Idle\020\000\022\r\n\tSingleSMR\020\001\022\014\n\010MultiSMR\020\002"
-  "\022\r\n\tManualSMR\020\003\022\017\n\013Teach2Drive\020\004\022\017\n\013Shak"
-  "e2Drive\020\005\022\022\n\016CamCalibration\020\006\022\024\n\020TrackCa"
-  "libration\020\007b\006proto3"
+  "cation.IVisionOpMode\0228\n\rexposure_mode\030\004 "
+  "\001(\0162!.CameraCommunication.ExposureMode\"\216"
+  "\001\n\017Acknowledgement\022-\n\006method\030\001 \001(\0162\035.Cam"
+  "eraCommunication.MethodId\022\017\n\007success\030\002 \001"
+  "(\010\022\022\n\nparameters\030\003 \003(\002\022\030\n\020parameter_stri"
+  "ng\030\004 \001(\t\022\r\n\005image\030\005 \001(\014\"\037\n\007SMRData\022\t\n\001x\030"
+  "\001 \003(\002\022\t\n\001y\030\002 \003(\002\"$\n\014CentroidData\022\t\n\001x\030\001 "
+  "\001(\002\022\t\n\001y\030\002 \001(\002\"\301\001\n\tVideoData\022\r\n\005image\030\001 "
+  "\001(\014\022)\n\003smr\030\002 \001(\0132\034.CameraCommunication.S"
+  "MRData\0222\n\006opmode\030\003 \001(\0162\".CameraCommunica"
+  "tion.IVisionOpMode\022\021\n\ttimestamp\030\004 \001(\004\0223\n"
+  "\010centroid\030\005 \003(\0132!.CameraCommunication.Ce"
+  "ntroidData*\246\004\n\010MethodId\022\031\n\025CalibrationPa"
+  "rameters\020\000\022\016\n\nStartVideo\020\001\022\r\n\tStopVideo\020"
+  "\002\022\017\n\013GetExposure\020\003\022\017\n\013SetExposure\020\004\022\022\n\016G"
+  "etDigitalGain\020\005\022\022\n\016SetDigitalGain\020\006\022\025\n\021S"
+  "etROIVideoStream\020\007\022\023\n\017BroadcastCamera\020\010\022"
+  "\021\n\rGetAnalogGain\020\t\022\021\n\rSetAnalogGain\020\n\022\n\n"
+  "\006GetFPS\020\013\022\n\n\006SetFPS\020\014\022\027\n\023GetSensorResolu"
+  "tion\020\r\022\027\n\023SetSensorResolution\020\016\022\030\n\024GetDi"
+  "splayResolution\020\017\022\030\n\024SetDisplayResolutio"
+  "n\020\020\022\r\n\tSetOpMode\020\021\022\013\n\007NextSMR\020\022\022\r\n\tUserC"
+  "lick\020\023\022\024\n\020GetVersionNumber\020\024\022\023\n\017EnterIpr"
+  "obeMode\020\025\022\022\n\016ExitIprobeMode\020\026\022\r\n\tGetFCin"
+  "FB\020\027\022\023\n\017SetExposureMode\020\030\022\032\n\026GetFullReso"
+  "lutionImage\020\031\022\034\n\030GetCameraIntrinsicMatri"
+  "x\020\032*\'\n\014ExposureMode\022\n\n\006Indoor\020\000\022\013\n\007Outdo"
+  "or\020\001*\221\001\n\rIVisionOpMode\022\010\n\004Idle\020\000\022\r\n\tSing"
+  "leSMR\020\001\022\014\n\010MultiSMR\020\002\022\r\n\tManualSMR\020\003\022\017\n\013"
+  "Teach2Drive\020\004\022\017\n\013Shake2Drive\020\005\022\022\n\016CamCal"
+  "ibration\020\006\022\024\n\020TrackCalibration\020\007b\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_CameraCommunication_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_CameraCommunication_2eproto = {
-    false, false, 1059, descriptor_table_protodef_CameraCommunication_2eproto,
+    false, false, 1400, descriptor_table_protodef_CameraCommunication_2eproto,
     "CameraCommunication.proto",
-    &descriptor_table_CameraCommunication_2eproto_once, nullptr, 0, 4,
+    &descriptor_table_CameraCommunication_2eproto_once, nullptr, 0, 5,
     schemas, file_default_instances, TableStruct_CameraCommunication_2eproto::offsets,
     file_level_metadata_CameraCommunication_2eproto, file_level_enum_descriptors_CameraCommunication_2eproto,
     file_level_service_descriptors_CameraCommunication_2eproto,
@@ -212,6 +250,26 @@ bool MethodId_IsValid(int value) {
     case 18:
     case 19:
     case 20:
+    case 21:
+    case 22:
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* ExposureMode_descriptor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_CameraCommunication_2eproto);
+  return file_level_enum_descriptors_CameraCommunication_2eproto[1];
+}
+bool ExposureMode_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
       return true;
     default:
       return false;
@@ -220,7 +278,7 @@ bool MethodId_IsValid(int value) {
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* IVisionOpMode_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_CameraCommunication_2eproto);
-  return file_level_enum_descriptors_CameraCommunication_2eproto[1];
+  return file_level_enum_descriptors_CameraCommunication_2eproto[2];
 }
 bool IVisionOpMode_IsValid(int value) {
   switch (value) {
@@ -258,12 +316,13 @@ Commands::Commands(const Commands& from)
       decltype(_impl_.parameters_){from._impl_.parameters_}
     , decltype(_impl_.method_){}
     , decltype(_impl_.opmode_){}
+    , decltype(_impl_.exposure_mode_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   ::memcpy(&_impl_.method_, &from._impl_.method_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.opmode_) -
-    reinterpret_cast<char*>(&_impl_.method_)) + sizeof(_impl_.opmode_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.exposure_mode_) -
+    reinterpret_cast<char*>(&_impl_.method_)) + sizeof(_impl_.exposure_mode_));
   // @@protoc_insertion_point(copy_constructor:CameraCommunication.Commands)
 }
 
@@ -275,6 +334,7 @@ inline void Commands::SharedCtor(
       decltype(_impl_.parameters_){arena}
     , decltype(_impl_.method_){0}
     , decltype(_impl_.opmode_){0}
+    , decltype(_impl_.exposure_mode_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -305,8 +365,8 @@ void Commands::Clear() {
 
   _impl_.parameters_.Clear();
   ::memset(&_impl_.method_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.opmode_) -
-      reinterpret_cast<char*>(&_impl_.method_)) + sizeof(_impl_.opmode_));
+      reinterpret_cast<char*>(&_impl_.exposure_mode_) -
+      reinterpret_cast<char*>(&_impl_.method_)) + sizeof(_impl_.exposure_mode_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -342,6 +402,15 @@ const char* Commands::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
           _internal_set_opmode(static_cast<::CameraCommunication::IVisionOpMode>(val));
+        } else
+          goto handle_unusual;
+        continue;
+      // .CameraCommunication.ExposureMode exposure_mode = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_exposure_mode(static_cast<::CameraCommunication::ExposureMode>(val));
         } else
           goto handle_unusual;
         continue;
@@ -393,6 +462,13 @@ uint8_t* Commands::_InternalSerialize(
       3, this->_internal_opmode(), target);
   }
 
+  // .CameraCommunication.ExposureMode exposure_mode = 4;
+  if (this->_internal_exposure_mode() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+      4, this->_internal_exposure_mode(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -432,6 +508,12 @@ size_t Commands::ByteSizeLong() const {
       ::_pbi::WireFormatLite::EnumSize(this->_internal_opmode());
   }
 
+  // .CameraCommunication.ExposureMode exposure_mode = 4;
+  if (this->_internal_exposure_mode() != 0) {
+    total_size += 1 +
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_exposure_mode());
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -457,6 +539,9 @@ void Commands::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTO
   if (from._internal_opmode() != 0) {
     _this->_internal_set_opmode(from._internal_opmode());
   }
+  if (from._internal_exposure_mode() != 0) {
+    _this->_internal_set_exposure_mode(from._internal_exposure_mode());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -476,8 +561,8 @@ void Commands::InternalSwap(Commands* other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.parameters_.InternalSwap(&other->_impl_.parameters_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Commands, _impl_.opmode_)
-      + sizeof(Commands::_impl_.opmode_)
+      PROTOBUF_FIELD_OFFSET(Commands, _impl_.exposure_mode_)
+      + sizeof(Commands::_impl_.exposure_mode_)
       - PROTOBUF_FIELD_OFFSET(Commands, _impl_.method_)>(
           reinterpret_cast<char*>(&_impl_.method_),
           reinterpret_cast<char*>(&other->_impl_.method_));
@@ -507,6 +592,7 @@ Acknowledgement::Acknowledgement(const Acknowledgement& from)
   new (&_impl_) Impl_{
       decltype(_impl_.parameters_){from._impl_.parameters_}
     , decltype(_impl_.parameter_string_){}
+    , decltype(_impl_.image_){}
     , decltype(_impl_.method_){}
     , decltype(_impl_.success_){}
     , /*decltype(_impl_._cached_size_)*/{}};
@@ -518,6 +604,14 @@ Acknowledgement::Acknowledgement(const Acknowledgement& from)
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_parameter_string().empty()) {
     _this->_impl_.parameter_string_.Set(from._internal_parameter_string(), 
+      _this->GetArenaForAllocation());
+  }
+  _impl_.image_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.image_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_image().empty()) {
+    _this->_impl_.image_.Set(from._internal_image(), 
       _this->GetArenaForAllocation());
   }
   ::memcpy(&_impl_.method_, &from._impl_.method_,
@@ -533,6 +627,7 @@ inline void Acknowledgement::SharedCtor(
   new (&_impl_) Impl_{
       decltype(_impl_.parameters_){arena}
     , decltype(_impl_.parameter_string_){}
+    , decltype(_impl_.image_){}
     , decltype(_impl_.method_){0}
     , decltype(_impl_.success_){false}
     , /*decltype(_impl_._cached_size_)*/{}
@@ -540,6 +635,10 @@ inline void Acknowledgement::SharedCtor(
   _impl_.parameter_string_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.parameter_string_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.image_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.image_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
@@ -556,6 +655,7 @@ inline void Acknowledgement::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.parameters_.~RepeatedField();
   _impl_.parameter_string_.Destroy();
+  _impl_.image_.Destroy();
 }
 
 void Acknowledgement::SetCachedSize(int size) const {
@@ -570,6 +670,7 @@ void Acknowledgement::Clear() {
 
   _impl_.parameters_.Clear();
   _impl_.parameter_string_.ClearToEmpty();
+  _impl_.image_.ClearToEmpty();
   ::memset(&_impl_.method_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.success_) -
       reinterpret_cast<char*>(&_impl_.method_)) + sizeof(_impl_.success_));
@@ -617,6 +718,15 @@ const char* Acknowledgement::_InternalParse(const char* ptr, ::_pbi::ParseContex
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
           CHK_(::_pbi::VerifyUTF8(str, "CameraCommunication.Acknowledgement.parameter_string"));
+        } else
+          goto handle_unusual;
+        continue;
+      // bytes image = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+          auto str = _internal_mutable_image();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
@@ -677,6 +787,12 @@ uint8_t* Acknowledgement::_InternalSerialize(
         4, this->_internal_parameter_string(), target);
   }
 
+  // bytes image = 5;
+  if (!this->_internal_image().empty()) {
+    target = stream->WriteBytesMaybeAliased(
+        5, this->_internal_image(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -709,6 +825,13 @@ size_t Acknowledgement::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_parameter_string());
+  }
+
+  // bytes image = 5;
+  if (!this->_internal_image().empty()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+        this->_internal_image());
   }
 
   // .CameraCommunication.MethodId method = 1;
@@ -744,6 +867,9 @@ void Acknowledgement::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const 
   if (!from._internal_parameter_string().empty()) {
     _this->_internal_set_parameter_string(from._internal_parameter_string());
   }
+  if (!from._internal_image().empty()) {
+    _this->_internal_set_image(from._internal_image());
+  }
   if (from._internal_method() != 0) {
     _this->_internal_set_method(from._internal_method());
   }
@@ -773,6 +899,10 @@ void Acknowledgement::InternalSwap(Acknowledgement* other) {
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.parameter_string_, lhs_arena,
       &other->_impl_.parameter_string_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.image_, lhs_arena,
+      &other->_impl_.image_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Acknowledgement, _impl_.success_)
@@ -1007,6 +1137,241 @@ void SMRData::InternalSwap(SMRData* other) {
 
 // ===================================================================
 
+class CentroidData::_Internal {
+ public:
+};
+
+CentroidData::CentroidData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:CameraCommunication.CentroidData)
+}
+CentroidData::CentroidData(const CentroidData& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  CentroidData* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.x_){}
+    , decltype(_impl_.y_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.x_, &from._impl_.x_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.y_) -
+    reinterpret_cast<char*>(&_impl_.x_)) + sizeof(_impl_.y_));
+  // @@protoc_insertion_point(copy_constructor:CameraCommunication.CentroidData)
+}
+
+inline void CentroidData::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.x_){0}
+    , decltype(_impl_.y_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+CentroidData::~CentroidData() {
+  // @@protoc_insertion_point(destructor:CameraCommunication.CentroidData)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void CentroidData::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void CentroidData::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void CentroidData::Clear() {
+// @@protoc_insertion_point(message_clear_start:CameraCommunication.CentroidData)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.x_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.y_) -
+      reinterpret_cast<char*>(&_impl_.x_)) + sizeof(_impl_.y_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* CentroidData::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // float x = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 13)) {
+          _impl_.x_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float y = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 21)) {
+          _impl_.y_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* CentroidData::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:CameraCommunication.CentroidData)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // float x = 1;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_x = this->_internal_x();
+  uint32_t raw_x;
+  memcpy(&raw_x, &tmp_x, sizeof(tmp_x));
+  if (raw_x != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(1, this->_internal_x(), target);
+  }
+
+  // float y = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_y = this->_internal_y();
+  uint32_t raw_y;
+  memcpy(&raw_y, &tmp_y, sizeof(tmp_y));
+  if (raw_y != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(2, this->_internal_y(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:CameraCommunication.CentroidData)
+  return target;
+}
+
+size_t CentroidData::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:CameraCommunication.CentroidData)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // float x = 1;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_x = this->_internal_x();
+  uint32_t raw_x;
+  memcpy(&raw_x, &tmp_x, sizeof(tmp_x));
+  if (raw_x != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float y = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_y = this->_internal_y();
+  uint32_t raw_y;
+  memcpy(&raw_y, &tmp_y, sizeof(tmp_y));
+  if (raw_y != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData CentroidData::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    CentroidData::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*CentroidData::GetClassData() const { return &_class_data_; }
+
+
+void CentroidData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<CentroidData*>(&to_msg);
+  auto& from = static_cast<const CentroidData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:CameraCommunication.CentroidData)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_x = from._internal_x();
+  uint32_t raw_x;
+  memcpy(&raw_x, &tmp_x, sizeof(tmp_x));
+  if (raw_x != 0) {
+    _this->_internal_set_x(from._internal_x());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_y = from._internal_y();
+  uint32_t raw_y;
+  memcpy(&raw_y, &tmp_y, sizeof(tmp_y));
+  if (raw_y != 0) {
+    _this->_internal_set_y(from._internal_y());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void CentroidData::CopyFrom(const CentroidData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:CameraCommunication.CentroidData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool CentroidData::IsInitialized() const {
+  return true;
+}
+
+void CentroidData::InternalSwap(CentroidData* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(CentroidData, _impl_.y_)
+      + sizeof(CentroidData::_impl_.y_)
+      - PROTOBUF_FIELD_OFFSET(CentroidData, _impl_.x_)>(
+          reinterpret_cast<char*>(&_impl_.x_),
+          reinterpret_cast<char*>(&other->_impl_.x_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata CentroidData::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_CameraCommunication_2eproto_getter, &descriptor_table_CameraCommunication_2eproto_once,
+      file_level_metadata_CameraCommunication_2eproto[3]);
+}
+
+// ===================================================================
+
 class VideoData::_Internal {
  public:
   static const ::CameraCommunication::SMRData& smr(const VideoData* msg);
@@ -1026,7 +1391,8 @@ VideoData::VideoData(const VideoData& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   VideoData* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.image_){}
+      decltype(_impl_.centroid_){from._impl_.centroid_}
+    , decltype(_impl_.image_){}
     , decltype(_impl_.smr_){nullptr}
     , decltype(_impl_.timestamp_){}
     , decltype(_impl_.opmode_){}
@@ -1055,7 +1421,8 @@ inline void VideoData::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.image_){}
+      decltype(_impl_.centroid_){arena}
+    , decltype(_impl_.image_){}
     , decltype(_impl_.smr_){nullptr}
     , decltype(_impl_.timestamp_){uint64_t{0u}}
     , decltype(_impl_.opmode_){0}
@@ -1078,6 +1445,7 @@ VideoData::~VideoData() {
 
 inline void VideoData::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.centroid_.~RepeatedPtrField();
   _impl_.image_.Destroy();
   if (this != internal_default_instance()) delete _impl_.smr_;
 }
@@ -1092,6 +1460,7 @@ void VideoData::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  _impl_.centroid_.Clear();
   _impl_.image_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.smr_ != nullptr) {
     delete _impl_.smr_;
@@ -1140,6 +1509,19 @@ const char* VideoData::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
           _impl_.timestamp_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated .CameraCommunication.CentroidData centroid = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_centroid(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<42>(ptr));
         } else
           goto handle_unusual;
         continue;
@@ -1198,6 +1580,14 @@ uint8_t* VideoData::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt64ToArray(4, this->_internal_timestamp(), target);
   }
 
+  // repeated .CameraCommunication.CentroidData centroid = 5;
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_centroid_size()); i < n; i++) {
+    const auto& repfield = this->_internal_centroid(i);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(5, repfield, repfield.GetCachedSize(), target, stream);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -1213,6 +1603,13 @@ size_t VideoData::ByteSizeLong() const {
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
+
+  // repeated .CameraCommunication.CentroidData centroid = 5;
+  total_size += 1UL * this->_internal_centroid_size();
+  for (const auto& msg : this->_impl_.centroid_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
 
   // bytes image = 1;
   if (!this->_internal_image().empty()) {
@@ -1257,6 +1654,7 @@ void VideoData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
+  _this->_impl_.centroid_.MergeFrom(from._impl_.centroid_);
   if (!from._internal_image().empty()) {
     _this->_internal_set_image(from._internal_image());
   }
@@ -1289,6 +1687,7 @@ void VideoData::InternalSwap(VideoData* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.centroid_.InternalSwap(&other->_impl_.centroid_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.image_, lhs_arena,
       &other->_impl_.image_, rhs_arena
@@ -1304,7 +1703,7 @@ void VideoData::InternalSwap(VideoData* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata VideoData::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_CameraCommunication_2eproto_getter, &descriptor_table_CameraCommunication_2eproto_once,
-      file_level_metadata_CameraCommunication_2eproto[3]);
+      file_level_metadata_CameraCommunication_2eproto[4]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -1321,6 +1720,10 @@ Arena::CreateMaybeMessage< ::CameraCommunication::Acknowledgement >(Arena* arena
 template<> PROTOBUF_NOINLINE ::CameraCommunication::SMRData*
 Arena::CreateMaybeMessage< ::CameraCommunication::SMRData >(Arena* arena) {
   return Arena::CreateMessageInternal< ::CameraCommunication::SMRData >(arena);
+}
+template<> PROTOBUF_NOINLINE ::CameraCommunication::CentroidData*
+Arena::CreateMaybeMessage< ::CameraCommunication::CentroidData >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::CameraCommunication::CentroidData >(arena);
 }
 template<> PROTOBUF_NOINLINE ::CameraCommunication::VideoData*
 Arena::CreateMaybeMessage< ::CameraCommunication::VideoData >(Arena* arena) {

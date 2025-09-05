@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string.h>
 #include <utility>
+#include <opencv2/core.hpp>
 #include "CameraInterface.h"
 
 
@@ -86,6 +87,12 @@ public:
 	float spiral_freq;
 	int spiral_timeout;
 	bool cam_auto_calib;
+	float target_intensity_threshold_high;
+	float target_intensity_threshold_low;
+	float auto_flash_adjust_factor;
+	float target_intensity_for_auto_exp;
+	int auto_exp_reset_interval;
+	cv::Mat FC_in_FB;
 
 	CalibData() {
         camCalib = CamCalibStruct();
@@ -104,6 +111,12 @@ public:
 		spiral_threshold = 1.0;
 		spiral_timeout = 10;
 		spiral_freq = 0.004f;
+		target_intensity_threshold_high = 60.0;
+		target_intensity_threshold_low = 20.0;
+		auto_flash_adjust_factor = 192.0;
+		target_intensity_for_auto_exp = 128.0;
+		auto_exp_reset_interval = 200;
+		FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
 	}
 
     int clearAll(){
@@ -123,6 +136,12 @@ public:
 		spiral_threshold = 1.0;
 		spiral_timeout = 10;
 		spiral_freq = 0.004f;
+		target_intensity_threshold_high = 60.0;
+		target_intensity_threshold_low = 20.0;
+		auto_flash_adjust_factor = 192.0;
+		target_intensity_for_auto_exp= 128.0;
+		auto_exp_reset_interval = 200;
+		FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
         return 0;
     }
 

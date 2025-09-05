@@ -24,7 +24,18 @@ enum MethodId
 	NextSMR = 18;
 	UserClick = 19;
 	GetVersionNumber = 20;
+	EnterIprobeMode = 21;
+	ExitIprobeMode = 22;
+	GetFCinFB = 23;
+	SetExposureMode = 24;
+	GetFullResolutionImage = 25;
 	// TODO: Add any other necessary methods
+}
+
+enum ExposureMode
+{
+	Indoor = 0;
+	Outdoor = 1;
 }
 
 enum IVisionOpMode {
@@ -43,6 +54,7 @@ message Commands
 	MethodId method = 1;
 	repeated float parameters = 2;
 	IVisionOpMode opmode = 3;
+	ExposureMode exposure_mode = 4;
 }
 
 
@@ -52,6 +64,7 @@ message Acknowledgement
 	bool success = 2;
 	repeated float parameters = 3;
 	string parameter_string = 4;
+	bytes image = 5;
 }
 
 message SMRData
@@ -60,9 +73,17 @@ message SMRData
 	repeated float y = 2;
 }
 
+message CentroidData
+{
+	float x = 1;
+	float y = 2;
+}
+
 message VideoData
 {
 	bytes image = 1;
 	SMRData smr = 2;
 	IVisionOpMode opmode = 3;
+	uint64 timestamp = 4;
+	repeated CentroidData centroid = 5;
 }

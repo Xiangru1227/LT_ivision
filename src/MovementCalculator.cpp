@@ -129,36 +129,19 @@ bool MovementCalculator::loadParallaxCalibrationFile() {
 }
 
 //TODO: check angles to figure out sudden pointing upward issue
-Movement MovementCalculator::getMovement(float trkAz, float trkEl, float smrImgAz, float smrImgEl, float searchDistance, bool smrHitByLaser, bool back_cam) {
+Movement MovementCalculator::getMovement(float trkAz, float trkEl, float smrImgAz, float smrImgEl, float searchDistance, bool smrHitByLaser, bool back_cam, cv::Point2f pixelAngle) {
 
 	//TODO: maybe adjust based on absolute AZ/EL instead of just assuming everyting works relatively
 
 	cv::Point2f laser = getLaserPoint(searchDistance);
 	//cv::Point2f laser = getLaserPoint(3.44154f);
-	//std::cout << "Mvmt diff: " << laser << " - " << smrImgAz << ", " << smrImgEl << "; trk ang: " << trkAz << ", " << trkEl << std::endl;
+	//std::cout << "Mvmt " << laser << " - " << smrImgAz << ", " << smrImgEl << "; trk ang: " << trkAz << ", " << trkEl << std::endl;
 	float diffAz = laser.x - smrImgAz;
 	float diffEl = laser.y - smrImgEl;
-	std::cout << "Mvmt diff: " << diffAz << ", " << diffEl << std::endl;
-	// //distance between two points
-	// double dist = sqrt(pow(smrImgAz - laser.x, 2) + pow(smrImgEl - laser.y , 2));
-	// std::cout << "Dist = " << dist << std::endl;
-	// //calculate angle between two points
-	// double angle = atan2(smrImgEl - laser.y, smrImgAz -laser.x);
-	// std::cout << "angle = " << angle << std::endl;
-
-	// //step size
-	// double stepSize = 0.00174533; // 0.1 degree
-
-	// int numSteps = static_cast<int>(ceil(dist / stepSize ));
-
-	// double initialVelocity = stepSize / 2.0;  // Initial velocity
-    // double finalVelocity = stepSize / 2.0;    // Final velocity
-
+	//std::cout << "Mvmt diff: " << diffAz << ", " << diffEl << std::endl;
 	float search_radius;
 
 	
-	//milliseconds mil(1000); //library declared in the header file
-	//mil = mil*2;
 	if (smrHitByLaser) {
 		//std::cout << "hit by lsr." << std::endl;
 		search_radius = 0.05f / searchDistance;
@@ -175,14 +158,16 @@ Movement MovementCalculator::getMovement(float trkAz, float trkEl, float smrImgA
 	Movement m;
 	m.type = MoveTo;
 	if(back_cam){
-		m.az = RadianToDegree(trkAz - diffAz); // the az sign is reversed to enable the back side iVision detection (flipped image)
-		m.el = RadianToDegree(trkEl - diffEl);
+		m.az = trkAz - (degrees_per_pixel * diffAz);
+		m.el = trkEl - (degrees_per_pixel * diffEl);
 	}
 	else{
-		m.az = RadianToDegree(trkAz + diffAz);
-		m.el = RadianToDegree(trkEl - diffEl);
+		m.az = trkAz + (degrees_per_pixel * diffAz);
+		m.el = trkEl + (degrees_per_pixel * diffEl);
 	}
+	//std::cout << "Pix ang" << pixelAngle << std::endl;
 	
+	//std::cout <<"moveTO: " << m.az << " " << m.el << std::endl;
 	// for (int i = 0; i < numSteps; ++i) {
     //     // Calculate velocity based on position in the trajectory
     //     double velocity = initialVelocity + (finalVelocity - initialVelocity) * (i / static_cast<double>(numSteps - 1));
@@ -242,12 +227,13 @@ cv::Point2f MovementCalculator::getLaserPoint(float searchDistance) {
 }
 
 float MovementCalculator::getLaserDistance(cv::Point2f imgAngles) {
-	float minDist = .005f;
+	float minDist = 100.0f;
 	int minIndex = -1;
 	for (int i = 0; i < parallaxCalibPoints.size(); i++) {
 		float diffAz = imgAngles.x - parallaxCalibPoints[i].az;
 		float diffEl = imgAngles.y - parallaxCalibPoints[i].el;
 		float dist = diffAz * diffAz + diffEl * diffEl;
+		//std::cout << "Distance to point " << i << ": " << dist << " diffAZ & diffEL: " << diffAz << " " << diffEl << std::endl;
 		if (dist < minDist) {
 			minDist = dist;
 			minIndex = i;
@@ -356,7 +342,7 @@ bool MovementCalculator::loadCalibrationFromTxtFile() {
 
 bool MovementCalculator::loadCalibrationFromJsonFile() {
 	if (cHandle->readCalibFile("cam_calibration.json") == 0) {
-	//if (cHandle->readCalibFile("cam_calibration_smoothed.json") == 0) {
+	// if (cHandle->readCalibFile("cam_calibration_smoothed.json") == 0) {
 		parallaxCalibPoints.clear();
 		CalibData cd;
 		cHandle->getUpdatedCalibData(cd);
@@ -374,54 +360,48 @@ bool MovementCalculator::loadCalibrationFromJsonFile() {
 	return false;
 }
 
-bool MovementCalculator::filterCalibData(){
+bool MovementCalculator::filterCalibData() {
+    std::cout << "In Filtering Func" << std::endl;
+    if (cHandle->readCalibFile("cam_calibration.json") == 0) {
+        cHandle->writeCalibFile("cam_calibration_original.json");
+        std::cout << "Filtering the parallax calibration" << std::endl;
+        const char* pythonCommand = "python3";
+        const char* pythonScript = "ILT_iVision_filter_track_calibration.py";
+        const char* jsonFilePath = "/home/radian/LT_iVision_from_git/src/cam_calibration.json";
 
-	std::cout << "In Filtering Func" << std::endl;
-	if(cHandle->readCalibFile("cam_calibration.json") == 0) {
-		cHandle->writeCalibFile("cam_calibration_original.json");
-		std::cout << "Filtering the parallax calibration" << std::endl;
-		const char* pythonCommand = "python3";
-		const char* pythonScript = "ILT_iVision_filter_track_calibration.py";
-		const char* jsonFilePath = "/home/nvidia/LT_iVision_from_git/src/cam_calibration.json";
+        std::string command = pythonCommand;
+        command += " ";
+        command += pythonScript;
+        command += " ";
+        command += jsonFilePath;
 
-		std::string command = pythonCommand;
-		command += " ";
-		command += pythonScript;
-		command += " ";
-		command += jsonFilePath;
+        int result = system(command.c_str());
 
-
-		int result = system(command.c_str());
-
-		if (result == 0) {
-			std::cout << "Successfully filtered the calib data" << std::endl;
-			loadCalibrationFromJsonFile();
-			std::cout << "Successfully loaded back the filtered calib data" << std::endl;
-		} else {
-			std::cout << "filtering data failed" << std::endl;
-		}
-		return true;
-	} else {
-		std::cout << "cannot read json file to filter" << std::endl;
-		return false;
-	}
+        if (result == 0) {
+            std::cout << "Successfully filtered the calib data" << std::endl;
+            loadCalibrationFromJsonFile();
+            std::cout << "Successfully loaded back the filtered calib data" << std::endl;
+        } else {
+            std::cout << "Filtering data failed" << std::endl;
+        }
+        return true;
+    } else {
+        std::cout << "Cannot read json file to filter" << std::endl;
+        return false;
+    }
 }
 
-double MovementCalculator::findMedian(std::vector<float> a, int n)
-{
+std::vector<CalibrationPoint>& MovementCalculator::getParallaxCalibPoints() {
+    return parallaxCalibPoints;
+}
+
+double MovementCalculator::findMedian(std::vector<float> a, int n) {
     if (n % 2 == 0) {
-
-        nth_element(a.begin(), a.begin() + n / 2,a.end());
-
-        nth_element(a.begin(), a.begin() + (n - 1) / 2, a.end());
-  
-        return (double)(a[(n - 1) / 2] + a[n / 2]) / 2.0;
-    }
-  
-    else {
-        
         nth_element(a.begin(), a.begin() + n / 2, a.end());
-        
-        return (double)a[n / 2];
+        nth_element(a.begin(), a.begin() + (n - 1) / 2, a.end());
+        return (a[(n - 1) / 2] + a[n / 2]) / 2.0;
+    } else {
+        nth_element(a.begin(), a.begin() + n / 2, a.end());
+        return a[n / 2];
     }
 }

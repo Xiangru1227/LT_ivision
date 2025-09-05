@@ -12,6 +12,7 @@
 CameraCalibrationManager::CameraCalibrationManager() {
 	cameraMatrix = cv::Mat(3, 3, CV_64FC1, cv::Scalar(0));
 	distortionCoeffs = cv::Mat(5, 1, CV_64FC1, cv::Scalar(0));
+	FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
 
 	isCalibrated = false;
 	mapsInitialized = false;
@@ -149,19 +150,23 @@ cv::Point2f CameraCalibrationManager::undistortPoint(cv::Point2f pt, cv::Size im
 	return undistPts[0];
 }
 
-
 //get angles relative to camera center based on x/y coordinates
 std::vector<cv::Point2f> CameraCalibrationManager::azElFromXY(std::vector<cv::Point2f> coordinates, cv::Size imageSize, bool undistort) {
 	std::vector<cv::Point2f> angles;
 	if (!coordinates.empty()) {
-		std::vector<cv::Point2f> undistorted = (undistort) ? undistortPoints(coordinates, imageSize) : coordinates;
-		cv::Mat cm = getScaledCameraMatrix(imageSize);
-		//std::cout << "Coordinates to convert: " << undistorted << std::endl;
-		for (int i = 0; i < undistorted.size(); i++) {
-			angles.push_back(cv::Point2f(std::atan((undistorted[i].x - cm.at<double>(0,2)) / cm.at<double>(0,0)), std::atan(( cm.at<double>(1,2) - undistorted[i].y) / cm.at<double>(1,1))));
+		std::vector<cv::Point2f> processedPoints = undistort ? undistortPoints(coordinates, imageSize) : coordinates;
+		
+		cv::Point2f imageCenter(imageSize.width / 2.0f, imageSize.height / 2.0f);
+
+		for (const auto& pt : processedPoints) {
+			// Compute the raw pixel displacement from the image center
+			float dx = pt.x - imageCenter.x;
+			float dy = pt.y - imageCenter.y;
+			// Compute the angles in radians
+			angles.push_back(cv::Point2f(dx, dy));
 		}
-	}
 	return angles;
+	}
 }
 
 
@@ -176,9 +181,18 @@ cv::Point2f CameraCalibrationManager::singleAzElFromXY(float imgX, float imgY, c
 std::vector<cv::Point2f> CameraCalibrationManager::xyFromAzEl(std::vector<cv::Point2f> angles, cv::Size imageSize) {
 	cv::Mat cm = getScaledCameraMatrix(imageSize);
 	std::vector<cv::Point2f> xys;
-	for (int i = 0; i < angles.size(); i++) {
-		xys.push_back(cv::Point2f(std::tan(angles[i].x) * cm.at<double>(0,0) + cm.at<double>(0,2), std::tan(angles[i].y) * cm.at<double>(1,1) + cm.at<double>(1,2)));
-	}
+	if (angles.empty()) return xys;
+
+    // Define the image center as the reference point
+    cv::Point2f imageCenter(imageSize.width / 2.0f, imageSize.height / 2.0f);
+
+    for (const auto& angle : angles) {
+        float x = imageCenter.x + angle.x;
+        float y = imageCenter.y + angle.y;
+
+        // Store the calculated pixel coordinates
+        xys.push_back(cv::Point2f(x, y));
+    }
 	return xys;
 }
 
@@ -261,6 +275,8 @@ bool CameraCalibrationManager::saveCalibrationToJsonFile() {
 		cd.camCalib.dist_p2 = distortionCoeffs.at<double>(3,0);
 		cd.camCalib.dist_k3 = distortionCoeffs.at<double>(4,0);
 
+		cd.FC_in_FB = FC_in_FB.clone();
+
 		cHandle->updateCalibData(cd);
 		return cHandle->writeCalibFile("cam_calibration.json") == 0;
 }
@@ -324,6 +340,9 @@ bool CameraCalibrationManager::loadCalibrationFromJsonFile() {
 		distortionCoeffs.at<double>(2,0) = cd.camCalib.dist_p1;
 		distortionCoeffs.at<double>(3,0) = cd.camCalib.dist_p2;
 		distortionCoeffs.at<double>(4,0) = cd.camCalib.dist_k3;
+		FC_in_FB = cd.FC_in_FB.clone();
+		// std::cout << "FC_in_FB Matrix: " << std::endl;
+        // std::cout << FC_in_FB << std::endl;
 		isCalibrated = true;
 		return true;
 	}

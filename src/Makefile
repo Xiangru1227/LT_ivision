@@ -8,7 +8,8 @@ endif
 #compile-time definitions
 CPPFLAGS += -DLT_IVISION_USE_FAKE_IMG_TAKEN_FLAG
 CPPFLAGS:=$(filter-out -std=c++11,$(CPPFLAGS))
-CPPFLAGS += -std=c++14
+# CPPFLAGS += -std=c++14
+CPPFLAGS += -std=c++17
 
 src = $(wildcard *.cpp)
 obj = $(src:.cpp=.o)
@@ -22,7 +23,7 @@ SRCS := $(wildcard $(CLASS_DIR)/*.cpp)
 
 OBJS := $(SRCS:.cpp=.o)
 
-inc =-I../inc -I../inc/include -I"$(ARGUS_UTILS_DIR)" -I/usr/local/include -I/usr/include -I/usr/local/include/opencv4 -I../inc/jetson-inference -I../inc/jetson-utils -I/home/nvidia/jetson-inference/build/aarch64/include -I/home/nvidia/jetson-inference/build/aarch64/include/jetson-inference -I/home/nvidia/jetson-inference/build/aarch64/include/jetson-utils
+inc =-I../inc -I../inc/include -I"$(ARGUS_UTILS_DIR)" -I/usr/local/include -I/usr/local/include/jetson-inference -I/usr/local/include/jetson-utils -I/usr/include -I/usr/local/include/opencv4 -I../inc/jetson-inference -I../inc/jetson-utils -I/home/nvidia/jetson-inference/build/aarch64/include -I/home/nvidia/jetson-inference/build/aarch64/include/jetson-inference -I/home/nvidia/jetson-inference/build/aarch64/include/jetson-utils
 
 $(EXE): $(obj)
 	$(CXX) -o $@ $^ $(CLASS_DIR)/NvJpegEncoder.o $(CLASS_DIR)/NvElement.o $(CLASS_DIR)/NvElementProfiler.o $(CLASS_DIR)/NvLogging.o $(LDFLAGS)

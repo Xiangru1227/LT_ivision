@@ -7,6 +7,8 @@
 #include <sstream>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <google/protobuf/io/coded_stream.h>
+#include <chrono>
+#include <vector>
 
 #include <string.h>
 //constructor/destructor
@@ -75,6 +77,7 @@ bool iVisionClient::sendMoveBy(float x, float y) {
     std::vector<float> prm;
     prm.push_back(x);
     prm.push_back(y);
+	//std::cout << "send move by: " << x << "," << y <<  std::endl;
 	if(lastData.trk_op_mode == trk_OP_Mode::Track || lastData.trk_op_mode == trk_OP_Mode::TrackIdle)
     	return sendCommand(iVisionCommunication::MoveBy, prm);
 	return true;
@@ -88,54 +91,12 @@ bool iVisionClient::sendMoveTo(float x, float y, float radius) {
     prm.push_back(x);
     prm.push_back(y);
 	prm.push_back(radius);
-	
-	//move_flag = true;
-	//std::cout << "Current Tracker State " << lastData.trk_op_mode << std::endl;
+	smrStableCount = 0;
+	//std::cout << "send move to fw: " << x << "," << y <<  std::endl;
 	if(lastData.trk_op_mode == trk_OP_Mode::Track || lastData.trk_op_mode == trk_OP_Mode::TrackIdle)
 		return sendCommand(iVisionCommunication::MoveTo, prm);
 	return true;
 
-    // auto ret = sendCommand(iVisionCommunication::MoveTo, prm);
-	// if (!ret) {
-	// 	return ret;
-	// }
-	// while((fabs(x - cur_az) > 0.1 && fabs(y - cur_el) > 0.1)) {
-	// 	cur_az = currentAzimuth();
-	// 	cur_el = currentElevation();
-	// 	//std::cout<<"current az is "<< cur_az << " expected " << x << std::endl;
-	// 	//std::cout<<"current el is "<< cur_el << " expected " << y << std::endl;
-	// 	//usleep(200000);
-	// }
-	
-	// return ret;
-	// TrackerInfo last_trackerinfo = getTrackerInfo();
-	// TrackerInfo current_trackerinfo = last_trackerinfo;
-
-	// if(fabs(x - cur_az) > 1.0){
-	// 	std::ofstream os("commandLog.txt", std::ios::app);
-	// 	os << "cur az " << cur_az << " Intended az: " << x << '\n';
-	// }
-	// while (true) {
-	// 	int trackerinfo_waiting_count = 0;
-	// 	while (last_trackerinfo.timestamp == current_trackerinfo.timestamp) {
-	// 		current_trackerinfo = getTrackerInfo();
-	// 		if (trackerinfo_waiting_count > 100) {
-	// 			move_flag = false;
-	// 			return ret;
-	// 		}
-	// 		usleep(100);
-	// 	}
-
-	// 	std::cout << "last - current AZ: " << last_trackerinfo.az - current_trackerinfo.az << std::endl;
-	// 	std::cout << "last - current EL: " << last_trackerinfo.el - current_trackerinfo.el << std::endl;
-	
-	// 	if ((fabs(last_trackerinfo.az - current_trackerinfo.az) < 0.001 &&
-	// 		fabs(last_trackerinfo.el - current_trackerinfo.el) < 0.001) || hasSMRLock()) {
-	// 		move_flag = false;
-	// 		return ret;
-	// 	}
-	// 	last_trackerinfo = current_trackerinfo;
-	// }
 }
 
 bool iVisionClient::SetSpiralSearch(float x, float y){
@@ -149,11 +110,13 @@ bool iVisionClient::SetSpiralSearch(float x, float y){
 }
 
 bool iVisionClient::StartSearch(float dist, float freq){
-	std::cout << "cmd to Spiral, Dist: " << dist << std::endl;
+	//std::cout << "cmd to Spiral, Dist: " << dist << std::endl;
+	SpiralInProgress = true;
 	std::vector<float> prm;
 	SetSpiral(true);
 	prm.push_back(dist);
     prm.push_back(freq);
+	smrStableCount = 0;
 	if(lastData.trk_op_mode == trk_OP_Mode::Track || lastData.trk_op_mode == trk_OP_Mode::TrackIdle)
 		return sendCommand(iVisionCommunication::StartSpiral, prm);
 	return true;
@@ -161,6 +124,7 @@ bool iVisionClient::StartSearch(float dist, float freq){
 
 bool iVisionClient::StopSearch(){
 	std::cout << "stopping spiral search" << std::endl;
+	SpiralInProgress = false;
 	SetSpiral(false);
 	return sendCommand(iVisionCommunication::StopSpiral);	
 }
@@ -219,6 +183,14 @@ bool iVisionClient::setCamMode(bool on) {
 	}
 }
 
+bool iVisionClient::setLedAlwaysOn(bool on) {
+	if (on) {
+		return sendCommand(iVisionCommunication::SetLEDState, {1.0f});
+	}
+	else {
+		return sendCommand(iVisionCommunication::SetLEDState, {0.0f});
+	}
+}
 
 bool iVisionClient::sendState() {
 	return setPSDLockFlag(psdLocked) && setFlashInTK(flashInTK) && setFlashOffset(flashOffset) && setFlashDuration(flashDuration) && setFlashBrightness(flashBrightness);
@@ -227,7 +199,8 @@ bool iVisionClient::sendState() {
 
 bool iVisionClient::trackerStill() {
     std::lock_guard<std::mutex> guard(dataLock);
-    return (smrStableCount > 3);
+	//std::cout << "SMR Stable Count:" << smrStableCount << std::endl;
+    return (smrStableCount > 400);
 }
 
 //not totally sure what this is, I don't know if it's based on SMR movement or just how long it's been locked onto it
@@ -265,7 +238,7 @@ TrackerInfo iVisionClient::getTrackerInfo() {
 }
 
 bool iVisionClient::is_Spiral() {
-	std::cout << "Is Spiral? " << lastData.trk_op_mode << std::endl;
+	//std::cout << "Is Spiral? " << lastData.trk_op_mode << std::endl;
 	if(lastData.trk_op_mode == trk_OP_Mode::SpiralSearch)
 		return true;
 	return false;
@@ -395,26 +368,63 @@ void iVisionClient::runRT() {
 					//std::cout << "Received tk data with timestamp " << tkinfo.timestamp << "locked: " << tkinfo.locked << std::endl;
                     std::lock_guard<std::mutex> guard(dataLock);
 					//if current distance not valid (because using reference or not locked on SMR), replace distance with last valid distance
-					//ref mode currently not correct, also might not matter usually
-					if (tkinfo.locked && !tkinfo.refMode && tkinfo.distance > 0 && tkinfo.distance != 45000.0f) {
-						//print_cnt ++;
-						// if(print_cnt % 2000)
-						// 	std::cout << "Received tk data with timestamp " << tkinfo.timestamp << "locked: " << tkinfo.locked << ", Distance" << tkinfo.distance << std::endl;
-						lastValidDistance = tkinfo.distance;
-						float diff = std::abs(lastData.distance - tkinfo.distance);
-						if (diff < 10.0f) {
-							smrStableCount++;
-						}
-						else {
-							//std::cout << "diff " << diff << " SMRstable " <<  smrStableCount <<std::endl;
+					//ref mode currently not 	, also might not matter usually				
+					
+					// Ensure valid data
+					if (/*tkinfo.distance > 0 && tkinfo.distance != 45000.0f &&*/  !tkinfo.refMode) {
+				
+						// Store last valid distance if locked
+						if (tkinfo.locked) {
+							lastValidDistance = tkinfo.distance;
 							smrStableCount = 0;
+						} 	
+						// Detect change in distance_command - for Dusty application
+						//std::cout << "Distance Command: " << tkinfo.distance_command << std::endl;
+						else if (tkinfo.jog_heartBeat != last_jog_hb) {
+							last_jog_hb = tkinfo.jog_heartBeat;
+							lastValidDistance = tkinfo.distance_command; // Store last valid distance
+							//std::cout << "distance_command changed, updating distance to: " << lastValidDistance  << std::endl;
 						}
+				
+						// Get current timestamp
+						auto now = std::chrono::steady_clock::now();
+				
+						// Store current AZ & EL with timestamp
+						azElBuffer.push_back({tkinfo.az, tkinfo.el});
+						timeBuffer.push_back(now);
+				
+						// Maintain buffer size (Remove old data)
+						if (azElBuffer.size() > REQUIRED_SAMPLES) {
+							azElBuffer.erase(azElBuffer.begin());
+							timeBuffer.erase(timeBuffer.begin());
+						}
+				
+						// Compute max deviation over the last 500ms
+						float maxDiffAZ = 0.0f, maxDiffEL = 0.0f;
+						for (const auto& data : azElBuffer) {
+							maxDiffAZ = std::max(maxDiffAZ, std::abs(data.first - tkinfo.az));
+							maxDiffEL = std::max(maxDiffEL, std::abs(data.second - tkinfo.el));
+						}
+				
+						// Check stability over 500ms
+						if (maxDiffAZ <= AZ_THRESHOLD && maxDiffEL <= EL_THRESHOLD) {
+							smrStableCount++;  // Position stable, increment count
+						} else {
+							//std::cout << "Gimble not still, reset stable count" << std::endl;
+							smrStableCount = 0;  // Motion detected, reset count
+						}
+				
+						//Debugging Information
+						// std::cout << "Max Diff AZ: " << maxDiffAZ 
+						// << " | Max Diff EL: " << maxDiffEL
+						// << " | Stable Count: " << smrStableCount
+						// << " | Locked: " << tkinfo.locked << std::endl;
+				
+					} else {
+						smrStableCount = 0;  // Reset stability count for invalid data
+						azElBuffer.clear();
+						timeBuffer.clear();
 					}
-					else {
-						smrStableCount = 0;
-					}
-
-					tkinfo.distance = lastValidDistance;
                     
                     if (tkinfo.imgTaken) {
 						//std::cout << "Received new az, el: " << lastData.az << ' ' << lastData.el << '\n';
@@ -505,6 +515,8 @@ TrackerInfo iVisionClient::extractTrackerInfo(iVisionCommunication::TrackerData 
     tkinfo.distance = tkdata.distance();
     tkinfo.locked = tkdata.locked();
 	tkinfo.trk_op_mode = tkdata.op_mode();
+	tkinfo.distance_command = tkdata.distance_command();
+	tkinfo.jog_heartBeat = tkdata.jog_hb();
 #ifdef LT_IVISION_USE_FAKE_IMG_TAKEN_FLAG
 	{
 		std::lock_guard<std::mutex> lock(fake_img_taken_flag_mutex_);

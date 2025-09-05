@@ -61,6 +61,11 @@ PROTOBUF_CONSTEXPR TrackerData::TrackerData(
   , /*decltype(_impl_.locked_)*/false
   , /*decltype(_impl_.img_flag_)*/false
   , /*decltype(_impl_.ref_mode_)*/false
+  , /*decltype(_impl_.jog_el_angle_)*/0
+  , /*decltype(_impl_.jog_az_angle_)*/0
+  , /*decltype(_impl_.jog_distance_)*/0
+  , /*decltype(_impl_.jog_hb_)*/0u
+  , /*decltype(_impl_.distance_command_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct TrackerDataDefaultTypeInternal {
   PROTOBUF_CONSTEXPR TrackerDataDefaultTypeInternal()
@@ -105,10 +110,15 @@ const uint32_t TableStruct_iVisionCommunication_2eproto::offsets[] PROTOBUF_SECT
   PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.el_angle_),
   PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.az_angle_),
   PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.distance_),
+  PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.distance_command_),
   PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.locked_),
   PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.op_mode_),
   PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.img_flag_),
   PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.ref_mode_),
+  PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.jog_el_angle_),
+  PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.jog_az_angle_),
+  PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.jog_distance_),
+  PROTOBUF_FIELD_OFFSET(::iVisionCommunication::TrackerData, _impl_.jog_hb_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::iVisionCommunication::BasicCommands)},
@@ -130,28 +140,32 @@ const char descriptor_table_protodef_iVisionCommunication_2eproto[] PROTOBUF_SEC
   "ent\022.\n\006method\030\001 \001(\0162\036.iVisionCommunicati"
   "on.MethodId\022\017\n\007success\030\002 \001(\010\022\030\n\020paramete"
   "r_string\030\003 \001(\t\022\027\n\017parameter_float\030\004 \003(\002\""
-  "\301\001\n\013TrackerData\022\022\n\nheart_beat\030\001 \001(\007\022\020\n\010e"
+  "\255\002\n\013TrackerData\022\022\n\nheart_beat\030\001 \001(\007\022\020\n\010e"
   "l_angle\030\002 \001(\002\022\020\n\010az_angle\030\003 \001(\002\022\020\n\010dista"
-  "nce\030\004 \001(\002\022\016\n\006locked\030\005 \001(\010\0224\n\007op_mode\030\006 \001"
-  "(\0162#.iVisionCommunication.OperationMode\022"
-  "\020\n\010img_flag\030\007 \001(\010\022\020\n\010ref_mode\030\010 \001(\010*\212\003\n\010"
-  "MethodId\022\013\n\007Connect\020\000\022\r\n\tBroadcast\020\001\022\n\n\006"
-  "MoveBy\020\002\022\n\n\006MoveTo\020\003\022\020\n\014SetPSDLocked\020\004\022\022"
-  "\n\016SetPSDUnlocked\020\005\022\020\n\014GetPSDLocked\020\006\022\022\n\016"
-  "SetFlashOffset\020\007\022\022\n\016GetFlashOffset\020\010\022\024\n\020"
-  "SetFlashDuration\020\t\022\024\n\020GetFlashDuration\020\n"
-  "\022\026\n\022SetFlashBrightness\020\013\022\026\n\022GetFlashBrig"
-  "htness\020\014\022\022\n\016SetFlashInTKOn\020\r\022\023\n\017SetFlash"
-  "InTKOff\020\016\022\020\n\014GetFlashInTK\020\017\022\020\n\014SetCamMod"
-  "eOn\020\020\022\021\n\rSetCamModeOff\020\021\022\017\n\013StartSpiral\020"
-  "\022\022\016\n\nStopSpiral\020\023\022\r\n\tSetSpiral\020\024*s\n\rOper"
-  "ationMode\022\010\n\004Idle\020\000\022\t\n\005Servo\020\001\022\t\n\005Track\020"
-  "\002\022\r\n\tTrackIdle\020\003\022\017\n\013IndexSearch\020\004\022\020\n\014Spi"
-  "ralSearch\020\005\022\020\n\014CameraSearch\020\006b\006proto3"
+  "nce\030\004 \001(\002\022\030\n\020distance_command\030\r \001(\002\022\016\n\006l"
+  "ocked\030\005 \001(\010\0224\n\007op_mode\030\006 \001(\0162#.iVisionCo"
+  "mmunication.OperationMode\022\020\n\010img_flag\030\007 "
+  "\001(\010\022\020\n\010ref_mode\030\010 \001(\010\022\024\n\014jog_el_angle\030\t "
+  "\001(\002\022\024\n\014jog_az_angle\030\n \001(\002\022\024\n\014jog_distanc"
+  "e\030\013 \001(\002\022\016\n\006jog_hb\030\014 \001(\007*\233\003\n\010MethodId\022\013\n\007"
+  "Connect\020\000\022\r\n\tBroadcast\020\001\022\n\n\006MoveBy\020\002\022\n\n\006"
+  "MoveTo\020\003\022\020\n\014SetPSDLocked\020\004\022\022\n\016SetPSDUnlo"
+  "cked\020\005\022\020\n\014GetPSDLocked\020\006\022\022\n\016SetFlashOffs"
+  "et\020\007\022\022\n\016GetFlashOffset\020\010\022\024\n\020SetFlashDura"
+  "tion\020\t\022\024\n\020GetFlashDuration\020\n\022\026\n\022SetFlash"
+  "Brightness\020\013\022\026\n\022GetFlashBrightness\020\014\022\022\n\016"
+  "SetFlashInTKOn\020\r\022\023\n\017SetFlashInTKOff\020\016\022\020\n"
+  "\014GetFlashInTK\020\017\022\020\n\014SetCamModeOn\020\020\022\021\n\rSet"
+  "CamModeOff\020\021\022\017\n\013StartSpiral\020\022\022\016\n\nStopSpi"
+  "ral\020\023\022\r\n\tSetSpiral\020\024\022\017\n\013SetLEDState\020\025*s\n"
+  "\rOperationMode\022\010\n\004Idle\020\000\022\t\n\005Servo\020\001\022\t\n\005T"
+  "rack\020\002\022\r\n\tTrackIdle\020\003\022\017\n\013IndexSearch\020\004\022\020"
+  "\n\014SpiralSearch\020\005\022\020\n\014CameraSearch\020\006b\006prot"
+  "o3"
   ;
 static ::_pbi::once_flag descriptor_table_iVisionCommunication_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_iVisionCommunication_2eproto = {
-    false, false, 997, descriptor_table_protodef_iVisionCommunication_2eproto,
+    false, false, 1122, descriptor_table_protodef_iVisionCommunication_2eproto,
     "iVisionCommunication.proto",
     &descriptor_table_iVisionCommunication_2eproto_once, nullptr, 0, 3,
     schemas, file_default_instances, TableStruct_iVisionCommunication_2eproto::offsets,
@@ -192,6 +206,7 @@ bool MethodId_IsValid(int value) {
     case 18:
     case 19:
     case 20:
+    case 21:
       return true;
     default:
       return false;
@@ -755,12 +770,17 @@ TrackerData::TrackerData(const TrackerData& from)
     , decltype(_impl_.locked_){}
     , decltype(_impl_.img_flag_){}
     , decltype(_impl_.ref_mode_){}
+    , decltype(_impl_.jog_el_angle_){}
+    , decltype(_impl_.jog_az_angle_){}
+    , decltype(_impl_.jog_distance_){}
+    , decltype(_impl_.jog_hb_){}
+    , decltype(_impl_.distance_command_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   ::memcpy(&_impl_.heart_beat_, &from._impl_.heart_beat_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.ref_mode_) -
-    reinterpret_cast<char*>(&_impl_.heart_beat_)) + sizeof(_impl_.ref_mode_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.distance_command_) -
+    reinterpret_cast<char*>(&_impl_.heart_beat_)) + sizeof(_impl_.distance_command_));
   // @@protoc_insertion_point(copy_constructor:iVisionCommunication.TrackerData)
 }
 
@@ -777,6 +797,11 @@ inline void TrackerData::SharedCtor(
     , decltype(_impl_.locked_){false}
     , decltype(_impl_.img_flag_){false}
     , decltype(_impl_.ref_mode_){false}
+    , decltype(_impl_.jog_el_angle_){0}
+    , decltype(_impl_.jog_az_angle_){0}
+    , decltype(_impl_.jog_distance_){0}
+    , decltype(_impl_.jog_hb_){0u}
+    , decltype(_impl_.distance_command_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -805,8 +830,8 @@ void TrackerData::Clear() {
   (void) cached_has_bits;
 
   ::memset(&_impl_.heart_beat_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.ref_mode_) -
-      reinterpret_cast<char*>(&_impl_.heart_beat_)) + sizeof(_impl_.ref_mode_));
+      reinterpret_cast<char*>(&_impl_.distance_command_) -
+      reinterpret_cast<char*>(&_impl_.heart_beat_)) + sizeof(_impl_.distance_command_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -878,6 +903,46 @@ const char* TrackerData::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
           _impl_.ref_mode_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float jog_el_angle = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 77)) {
+          _impl_.jog_el_angle_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float jog_az_angle = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 85)) {
+          _impl_.jog_az_angle_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float jog_distance = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 93)) {
+          _impl_.jog_distance_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // fixed32 jog_hb = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 101)) {
+          _impl_.jog_hb_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<uint32_t>(ptr);
+          ptr += sizeof(uint32_t);
+        } else
+          goto handle_unusual;
+        continue;
+      // float distance_command = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 109)) {
+          _impl_.distance_command_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
         } else
           goto handle_unusual;
         continue;
@@ -971,6 +1036,52 @@ uint8_t* TrackerData::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(8, this->_internal_ref_mode(), target);
   }
 
+  // float jog_el_angle = 9;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_el_angle = this->_internal_jog_el_angle();
+  uint32_t raw_jog_el_angle;
+  memcpy(&raw_jog_el_angle, &tmp_jog_el_angle, sizeof(tmp_jog_el_angle));
+  if (raw_jog_el_angle != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(9, this->_internal_jog_el_angle(), target);
+  }
+
+  // float jog_az_angle = 10;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_az_angle = this->_internal_jog_az_angle();
+  uint32_t raw_jog_az_angle;
+  memcpy(&raw_jog_az_angle, &tmp_jog_az_angle, sizeof(tmp_jog_az_angle));
+  if (raw_jog_az_angle != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(10, this->_internal_jog_az_angle(), target);
+  }
+
+  // float jog_distance = 11;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_distance = this->_internal_jog_distance();
+  uint32_t raw_jog_distance;
+  memcpy(&raw_jog_distance, &tmp_jog_distance, sizeof(tmp_jog_distance));
+  if (raw_jog_distance != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(11, this->_internal_jog_distance(), target);
+  }
+
+  // fixed32 jog_hb = 12;
+  if (this->_internal_jog_hb() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFixed32ToArray(12, this->_internal_jog_hb(), target);
+  }
+
+  // float distance_command = 13;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_distance_command = this->_internal_distance_command();
+  uint32_t raw_distance_command;
+  memcpy(&raw_distance_command, &tmp_distance_command, sizeof(tmp_distance_command));
+  if (raw_distance_command != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(13, this->_internal_distance_command(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -1040,6 +1151,47 @@ size_t TrackerData::ByteSizeLong() const {
     total_size += 1 + 1;
   }
 
+  // float jog_el_angle = 9;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_el_angle = this->_internal_jog_el_angle();
+  uint32_t raw_jog_el_angle;
+  memcpy(&raw_jog_el_angle, &tmp_jog_el_angle, sizeof(tmp_jog_el_angle));
+  if (raw_jog_el_angle != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float jog_az_angle = 10;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_az_angle = this->_internal_jog_az_angle();
+  uint32_t raw_jog_az_angle;
+  memcpy(&raw_jog_az_angle, &tmp_jog_az_angle, sizeof(tmp_jog_az_angle));
+  if (raw_jog_az_angle != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float jog_distance = 11;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_distance = this->_internal_jog_distance();
+  uint32_t raw_jog_distance;
+  memcpy(&raw_jog_distance, &tmp_jog_distance, sizeof(tmp_jog_distance));
+  if (raw_jog_distance != 0) {
+    total_size += 1 + 4;
+  }
+
+  // fixed32 jog_hb = 12;
+  if (this->_internal_jog_hb() != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float distance_command = 13;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_distance_command = this->_internal_distance_command();
+  uint32_t raw_distance_command;
+  memcpy(&raw_distance_command, &tmp_distance_command, sizeof(tmp_distance_command));
+  if (raw_distance_command != 0) {
+    total_size += 1 + 4;
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -1094,6 +1246,37 @@ void TrackerData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
   if (from._internal_ref_mode() != 0) {
     _this->_internal_set_ref_mode(from._internal_ref_mode());
   }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_el_angle = from._internal_jog_el_angle();
+  uint32_t raw_jog_el_angle;
+  memcpy(&raw_jog_el_angle, &tmp_jog_el_angle, sizeof(tmp_jog_el_angle));
+  if (raw_jog_el_angle != 0) {
+    _this->_internal_set_jog_el_angle(from._internal_jog_el_angle());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_az_angle = from._internal_jog_az_angle();
+  uint32_t raw_jog_az_angle;
+  memcpy(&raw_jog_az_angle, &tmp_jog_az_angle, sizeof(tmp_jog_az_angle));
+  if (raw_jog_az_angle != 0) {
+    _this->_internal_set_jog_az_angle(from._internal_jog_az_angle());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_jog_distance = from._internal_jog_distance();
+  uint32_t raw_jog_distance;
+  memcpy(&raw_jog_distance, &tmp_jog_distance, sizeof(tmp_jog_distance));
+  if (raw_jog_distance != 0) {
+    _this->_internal_set_jog_distance(from._internal_jog_distance());
+  }
+  if (from._internal_jog_hb() != 0) {
+    _this->_internal_set_jog_hb(from._internal_jog_hb());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_distance_command = from._internal_distance_command();
+  uint32_t raw_distance_command;
+  memcpy(&raw_distance_command, &tmp_distance_command, sizeof(tmp_distance_command));
+  if (raw_distance_command != 0) {
+    _this->_internal_set_distance_command(from._internal_distance_command());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -1112,8 +1295,8 @@ void TrackerData::InternalSwap(TrackerData* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(TrackerData, _impl_.ref_mode_)
-      + sizeof(TrackerData::_impl_.ref_mode_)
+      PROTOBUF_FIELD_OFFSET(TrackerData, _impl_.distance_command_)
+      + sizeof(TrackerData::_impl_.distance_command_)
       - PROTOBUF_FIELD_OFFSET(TrackerData, _impl_.heart_beat_)>(
           reinterpret_cast<char*>(&_impl_.heart_beat_),
           reinterpret_cast<char*>(&other->_impl_.heart_beat_));

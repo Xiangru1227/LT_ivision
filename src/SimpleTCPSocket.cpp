@@ -21,6 +21,8 @@
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <thread>  // For std::this_thread
+#include <chrono>  // For std::chrono::milliseconds
 //using namespace std;
 
 #ifndef SOCKET_ERROR
@@ -322,14 +324,25 @@ bool SimpleTCPClientSocket::connect(const char* host,
     their_addr.sin_addr = ((struct sockaddr_in*)(addrs->ai_addr))->sin_addr;
     memset(&(their_addr.sin_zero), 0, 8);  // zero the rest of the struct 
 
-    if (::connect(socket_, (struct sockaddr*)&their_addr,
-                  sizeof(struct sockaddr))== SOCKET_ERROR){
-        perror("connect");
-        close();
-        return false;
+    // Retry mechanism: Attempt to connect with a delay on failure
+    const int maxRetries = 5;  // Limit retries
+    const int delayMillis = 1000; // 1 second delay between retries
+
+    for (int attempt = 1; attempt <= maxRetries; ++attempt) {
+        if (::connect(socket_, (struct sockaddr*)&their_addr, sizeof(struct sockaddr)) == SOCKET_ERROR) {
+            perror("connect");
+            if (attempt < maxRetries) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(delayMillis));
+            }
+        } else {
+            // Connection successful
+            return true;
+        }
     }
 
-    return true;
+    // If we reached here, connection failed after max retries
+    close();
+    return false;
 }
 
 SimpleBroadcastSocket::SimpleBroadcastSocket() {

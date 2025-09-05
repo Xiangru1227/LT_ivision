@@ -52,6 +52,7 @@ struct CameraProperties {
 	float analog_gain;	//camera analog gain
 	float digital_gain;	//camera digital gain
 	bool flash_on;	//flash on
+	cv::Mat FC_in_FB;
 };
 
 //stores ROI in pixel units along with bool representing if ROI is the entire image
@@ -98,7 +99,7 @@ public:
 
 	//retrieve OpenCV images
 	//get any of image YUV components, and/or full image in RGBA format, can also specify YUV ROI and whether YUV data should be copied to separate buffer
-	bool nextProcessImage(cv::Mat& yImage, bool getY, cv::Mat& uImage, bool getU, cv::Mat& vImage, bool getV, cv::Mat& rgbaImage, bool getRGBA, bool noCopyYUV, cv::Rect yuvAOI = cv::Rect(0,0,0,0));
+	bool nextProcessImage(cv::Mat& yImage, bool getY, cv::Mat& uImage, bool getU, cv::Mat& vImage, bool getV, cv::Mat& rgbaImage, bool getRGBA, bool noCopyYUV,  unsigned long &imgTime, cv::Rect yuvAOI = cv::Rect(0,0,0,0));
 	//wait for two new images and then put them in the YUV buffers
 	bool updateProcessImages(unsigned long& firstTime, unsigned long& secondTime);
 	//retrieve two most recent images from buffers
@@ -106,9 +107,10 @@ public:
 
 
 	//retrieve JPEG images
-	bool nextVideoImage(char** buf, unsigned long& data_size);	//get next jpeg encoded video image
-	bool nextVideoImage(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize);	//get next jpeg encoded video image with ROI (0-1)
-	bool nextProcessImageJpeg(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize);	//get jpeg encoded full resolution image with ROI (0-1)
+	bool nextVideoImage(char** buf, unsigned long& data_size, unsigned long &timeStamp);	//get next jpeg encoded video image
+	bool nextVideoImage(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize, unsigned long &timeStamp);	//get next jpeg encoded video image with ROI (0-1)
+	bool nextProcessImageJpeg(char** buf, unsigned long& data_size, unsigned long &timeStamp);
+	bool nextProcessImageJpeg(char** buf, unsigned long& data_size, cv::Point2f roiCorner, cv::Point2f roiSize, unsigned long &timeStamp);	//get jpeg encoded full resolution image with ROI (0-1)
 
 
 	//release buffers that are mapped when getting the process image with noCopyYUV

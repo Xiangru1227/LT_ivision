@@ -49,8 +49,7 @@ bool StateCalibration::stateAction() {
 			//(*nextState) = Video;
 			finished = true;
 			//mov->filterCalibData();
-			firmware->setFlashInTK(false);
-			firmware->setFlashBrightness(0.5f);
+			
 		}
 		}
 	}
@@ -62,7 +61,8 @@ bool StateCalibration::stateAction() {
 }
 
 bool StateCalibration::leaveState() {
-	bool smoothening_flag = cam->Filter_calibration();
+	//bool smoothening_flag = cam->Filter_calibration(); // testing without smoothening
 	std::cout << "Leaving Calibration State." << std::endl;
-	return smoothening_flag;
+	//return smoothening_flag;
+	return true;
 }

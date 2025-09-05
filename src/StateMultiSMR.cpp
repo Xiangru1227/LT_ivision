@@ -39,10 +39,14 @@ bool StateMultiSMR::enterState() {
 	//reset tracking, targeter defaults to single SMR tracking, so just need to clear targets
 	cam->clearSMRTargets();
 
+	if(firmware->is_Spiral()){
+		firmware->StopSearch();
+	}
+
 	//make sure camera has started video capture
 	usingCamera = true;
 	
-	//cam->stopVideo(); // stop the video to set the cam properties in image detection settings
+	cam->stopVideo(); // stop the video to set the cam properties in image detection settings
 	//load smart camera calibration data to prepare for SMR tracking
 	if (!cam->loadCalibration())
 		return false;
@@ -65,6 +69,15 @@ bool StateMultiSMR::enterState() {
 bool StateMultiSMR::stateAction() {
 	//since this state tracks multiple SMRs, it should always be tracking SMRs
 	updateSMRTracking();
+
+
+	// check for image intensity, exercise auto exposure if needed
+	if (cam->checkNeedsAutoExposure()){
+		cam->stopVideo();
+			if (!cam->loadCalibration())
+				return false;
+		cam->startVideo();
+	}
 
 	//perform different action depending on which state it's in
 	switch(currentMultiSMRState) {
@@ -155,6 +168,17 @@ bool StateMultiSMR::trackState() {
 			}
 		}
 		cam->reportTrackerLock(true, firmware->currentAzimuth(), firmware->currentElevation(), cam->cam_auto_calib, firmware->currentDistance() / 1000, firmware->SMRStableDuration());
+		
+		//auto exposure running during the lock
+		cam->auto_exp_counter++;
+		//std::cout <<"auto exp cntr:" << cam->auto_exp_counter << std::endl;
+		if(cam->auto_exp_counter >= cam->auto_exp_reset_interval){
+			cam->auto_exp_counter = 0;
+			cam->stopVideo();
+				if (!cam->loadCalibration())
+					return false;
+			cam->startVideo();
+		}
 		return true;
 	}
 	cam->reportTrackerLock(false, firmware->currentAzimuth(), firmware->currentElevation());
@@ -170,10 +194,10 @@ bool StateMultiSMR::trackState() {
 
 	//get desired movement towards SMR
 	Movement mov = cam->findTrackingMovement();
-	if (mov.type == MoveBy) {
+	if (mov.type == MoveBy && firmware->trackerStill()) {
 		//std::cout << "Moving by " << mov.az << ' ' << mov.el << '\n';
 		return firmware->sendMoveBy(mov.az, mov.el);
-	} else if (mov.type == MoveTo) {
+	} else if (mov.type == MoveTo && firmware->trackerStill()) {
 		//std::cout << "Moving to " << mov.az << ' ' << mov.el << " radius: " << mov.radius << '\n';
 		return firmware->sendMoveTo(mov.az, mov.el, mov.radius);
 	}

@@ -21,16 +21,17 @@ bool StateVideo::enterState() {
 	// cam->setRegCamProp();
 	// cam->stopVideo();
 	usingCamera = true;
-	//cam->stopVideo();
+	cam->stopVideo();
 	//load smart camera calibration data to prepare for SMR tracking
 	if (!cam->loadCalibration())
 		return false;
-	//cam->setRegCamProp();
 	cam->startVideo();
 	firmware->setPSDLockFlag(true);
-	firmware->setFlashBrightness(0.0f);
+	// firmware->setFlashBrightness(0.95);
 	cam->clearSMRTracking();
 	cam->clearSMRTargets();
+	firmware->setFlashInTK(false);
+	firmware->setLedAlwaysOn(false);
 
 	return true;
 }
@@ -39,10 +40,21 @@ bool StateVideo::stateAction() {
 	//cam->updateDetectionImage();
 	TrackerInfo tkr = firmware->getTrackerInfo();
 	if (firmware->hasSMRLock()){
+		firmware->setFlashInTK(false);
 		cam->reportTrackerLock(true, tkr.az, tkr.el, true, tkr.distance / 1000, firmware->SMRStableDuration());
+		if (cam->getIprobeMode()) {
+			if (!cam->getIprobeLocked()) {
+				cam->setIprobeLocked(true);
+			}
+		}
+	} else {
+		firmware->setFlashInTK(false);
+		if (cam->getIprobeLocked()) {
+			cam->setIprobeLocked(false);
+		}
 	}
 	usleep(100000);
-	updateSMRTracking();
+	// updateSMRTracking();
 	return true;
 }
 
