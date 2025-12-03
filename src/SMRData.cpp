@@ -64,11 +64,11 @@ float SMRData::validDistance(SMRData d, cv::Point2f pixelAngle) {
 	float elDist = std::abs(el - d.el);
 	float sizeRatio = imgA / d.imgA;
 	float maxDim = std::max(imgW, imgH);
-	std::cout << "Pixel Angle: " << pixelAngle << ", Size Ratio: " << sizeRatio << std::endl;
-	float azThresh = 4.0f * maxDim * pixelAngle.x;
-	float elThresh = 4.0f * maxDim * pixelAngle.y;
-	if (sizeRatio > .5f && sizeRatio < 2.0f)
-		//std::cout << "AZ Thresh: " << azThresh << ", EL Thresh: " << elThresh << ", Max Dim: " << maxDim << std::endl;
+	//std::cout << "imgW:" << imgW << " imgA:" << imgA << " imgH: " << imgH << " Size Ratio: " << sizeRatio << std::endl;
+	float azThresh = 4.0f * maxDim * 0.004486532723144;
+	float elThresh = 4.0f * maxDim * 0.004486532723144;
+	//std::cout << "AZ Thresh: " << azThresh << ", EL Thresh: " << elThresh << ", Max Dim: " << maxDim << " \n azDist: " << azDist << " elDist:" << elDist << " return value: " << azDist * azDist + elDist * elDist << std::endl;
+	if (sizeRatio > .5f && sizeRatio < 2.0f /*&& elDist < elThresh && azDist < azThresh*/)
 		return azDist * azDist + elDist * elDist;
 	return -1;
 }

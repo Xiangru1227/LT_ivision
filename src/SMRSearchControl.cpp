@@ -8,8 +8,8 @@
 
 SMRSearchControl::SMRSearchControl() {
 	searchCount = 0;
-	minSearchDistance = 0.05f;
-	maxSearchDistance = 40.0f;
+	minSearchDistance = 0.1f;
+	maxSearchDistance = 80.0f;
 	searchDistance = maxSearchDistance;
 	wantTarget = false;
 	//targetMissingCount = 0;
@@ -66,76 +66,15 @@ void SMRSearchControl::reportLock() {
 //TODO: basically everything that happens when the target is not found, figure out what works for the red algorithm and if there are any special conditions for jogging or anything else
 //laserImg angles are the point where the laser should be given the search distance, so you have to get the current search distance, give that to the movement calculator, get laser coordinates/angles, and then feed them back here...kinda messy but idk
 void SMRSearchControl::updateSearch(bool locked, bool targetFound, bool smrHitByLaser, float laserImgAz, float laserImgEl, float smrImgAz, float smrImgEl, float smrDistance) {
-	/*if (!locked) {
-		if (targetFound) {
-			//not sure if these will be used, one more thing to figure out later
-			float laserDistAz = std::abs(smrImgAz - laserImgAz);
-			float laserDistEl = std::abs(smrImgEl - laserImgEl);
-			float minDist = (smrHitByLaser) ? .01f : .005f;
-			//std::cout << "SMR img EL: " << smrImgEl << ", laser img EL: " << laserImgEl << std::endl;
-			//std::cout << "AZ dist: " << laserDistAz << ", EL dist: " << laserDistEl << std::endl;
-			if (laserDistAz < minDist && laserDistEl < minDist && !wasHitByLaser) {
-				updateSearchDistance(smrDistance, smrHitByLaser);
-			}
-			lastSMRAz = smrImgAz;
-			lastSMREl = smrImgEl;
-			targetMissingCount = 0;
-			//this probably shouldn't go here, should be more of a fixed number of red detections, but figure that out later
-			shouldUseRed = false;
-			wasHitByLaser = smrHitByLaser;
-		}
-		else {
-			if (targetMissingCount < 9)
-				targetMissingCount++;
-			//TODO: change condition here, should check that smr image angles are possibly close to laser (or maybe just don't check them at all)
-			if (targetMissingCount > 4 && smrImgAz == smrImgEl) {
-				shouldUseRed = true;
-			}
-		}
-	}
-	else {
-		//std::cout << "Updated search with SMR locked." << std::endl;
-		wasHitByLaser = false;
-	}
-	if (wasHitByLaser) {
-		searchRadius = 0.1f;
-	}
-	else {
-		searchRadius = 0;
-	}*/
+	
 	lockedOnSMR = locked;
 	if (!locked) {
-		float laserDistAz = std::abs(smrImgAz - laserImgAz);
-		float laserDistEl = std::abs(smrImgEl - laserImgEl);
-		float minDist = .04f;
-		//std::cout << "SMR img EL: " << smrImgEl << ", laser img EL: " << laserImgEl << std::endl;
-		//std::cout << "AZ dist: " << laserDistAz << ", EL dist: " << laserDistEl << std::endl;
-		
-
-		// if(smrImgEl > laserImgEl){
-		// 	std::cout << "decreasing" << std::endl; //guiding which direction the laser should jog to search for SMR
-		// 	updateSearchDistance(smrDistance, false, false, true);
-			
-		// }else if (smrImgEl < laserImgEl) {
-		// 	std::cout << "increasing" << std::endl;
-		// 	updateSearchDistance(smrDistance, false, true, false);
-			
-		// }
-			 //guiding which direction the laser should jog to search for SMR}
-		
-		//std::cout << "Updated search distance with smrdistance: " << smrDistance << std::endl;
-		updateSearchDistance(smrDistance, false); //smr is blinded by laser, I still want the dist to be updated.
-
+		//std::cout << "SMRSearchControl: search Dist: " << searchDistance <<  std::endl;
+		updateSearchDistance(smrDistance, smrHitByLaser); //smr is blinded by laser, I still want the dist to be updated.
 
 		if (smrHitByLaser)
 			wasHitByLaser = true;
 
-		// if (wasHitByLaser) {
-		// 	redBeamCount++;
-		// }
-		// else {
-		// 	redBeamCount = 0;
-		// }
 	}
 	else {
 		wasHitByLaser = false;
@@ -186,35 +125,9 @@ void SMRSearchControl::updateSearchDistance(float estimatedDistance, bool target
     static int iterationCount = 0;               // Tracks number of iterations
     static int resetCount = 0;                   // Tracks number of resets
     static bool reverseDirection = false;        // Tracks the direction of bounds adjustment
-    const float epsilon = 0.2f;                 // Threshold for convergence detection
+    // Make epsilon distance-dependent
+    float epsilon = std::max(0.5f, searchDistance * 0.2f); // 5% of distance, but at least 0.2
     const int maxIterations = 6;               // Maximum iterations before reset
-
-
-    // Handle the first iteration: Initialize bounds using estimatedDistance
-    if (isFirstIteration) {
-        if (estimatedDistance > 0.0f) {
-            lowerBound = std::max(minSearchDistance, estimatedDistance - 2.0f);
-            upperBound = std::min(maxSearchDistance, estimatedDistance + 2.0f);
-        } else {
-            // Default bounds if no estimated distance is provided
-            lowerBound = minSearchDistance;
-            upperBound = maxSearchDistance;
-            //std::cout << "Warning: Estimated distance is 0. Using default bounds." << std::endl;
-        }
-
-
-
-
-        searchDistance = (lowerBound + upperBound) / 2.0f;
-    //    std::cout << "First iteration: Initialized bounds -> "
-    //            << "Lower = " << lowerBound << ", Upper = " << upperBound << std::endl;
-
-        isFirstIteration = false; // Switch off first iteration flag
-        iterationCount = 0;       // Reset iteration counter
-        resetCount = 0;           // Reset reset counter
-        reverseDirection = false; // Start in the default direction
-        return;
-    }
 
     // Perform binary search: Narrow down bounds
     searchDistance = (lowerBound + upperBound) / 2.0f;
@@ -224,6 +137,7 @@ void SMRSearchControl::updateSearchDistance(float estimatedDistance, bool target
     //           << ": Search Distance = " << searchDistance
     //           << ", Lower Bound = " << lowerBound
     //           << ", Upper Bound = " << upperBound
+    //           << ", Epsilon = " << epsilon
     //           << ", Reverse Direction = " << reverseDirection << std::endl;
 
     // Adjust bounds
@@ -237,6 +151,8 @@ void SMRSearchControl::updateSearchDistance(float estimatedDistance, bool target
             }
         } else {
             // Reverse bounds adjustment logic
+
+
             if (searchDistance < upperBound) {
                 upperBound = searchDistance; // Shrinking the upper bound
             } else {
@@ -244,7 +160,7 @@ void SMRSearchControl::updateSearchDistance(float estimatedDistance, bool target
             }
         }
     } else {
-        //std::cout << "Bounds too close! Attempting reset." << std::endl;
+       // std::cout << "Bounds too close! Attempting reset." << std::endl;
 
         // Reset bounds if they are too close or max iterations reached
         if (iterationCount >= maxIterations || upperBound - lowerBound < epsilon) {

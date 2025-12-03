@@ -400,6 +400,7 @@ bool SDKCommunicator::updateControls(CameraCommunication::Commands *cmd) {
 		case CameraCommunication::ExitIprobeMode:
 		{
 			updateExitIprobeMode();
+			// std::cout << "[SDK] ExitIprobeMode command received (updateControls)." << std::endl;
 			sendAck(CameraCommunication::ExitIprobeMode, true);
 		break;
 		}

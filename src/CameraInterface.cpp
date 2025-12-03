@@ -30,7 +30,6 @@ CameraInterface::CameraInterface() {
 	default_properties.analog_gain = 1.5f;
 	default_properties.digital_gain = 1.0f;
 	default_properties.flash_on = true;
-	default_properties.FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
 
 	properties = default_properties;
 

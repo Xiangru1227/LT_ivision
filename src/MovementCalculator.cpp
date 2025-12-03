@@ -8,7 +8,9 @@
 MovementCalculator::MovementCalculator() {
 	gen = std::mt19937(rd());
 	dis = std::uniform_real_distribution<>(-0.0002, 0.0002);
-
+	cHandle = new CalibHandle();
+	camCalibManager = std::make_shared<CameraCalibrationManager>();
+	camCalibManager->setCalibHandle(this->cHandle);
 	lastCalibDistance = 0;
 }
 
@@ -202,7 +204,7 @@ cv::Point2f MovementCalculator::interpolateCalibPoints(CalibrationPoint cp1, Cal
 }
 
 cv::Point2f MovementCalculator::getLaserPoint(float searchDistance) {
-	searchDistance = std::max(std::min(searchDistance, 80.0f), 1.0f);
+	searchDistance = std::max(std::min(searchDistance, 30.0f), 1.0f);
 	cv::Point2f target = cv::Point2f(-1.0f, -1.0f);
 	if (parallaxCalibPoints.size() > 0) {
 		for (int i = 1; i < parallaxCalibPoints.size(); i++) {
@@ -217,23 +219,24 @@ cv::Point2f MovementCalculator::getLaserPoint(float searchDistance) {
 				target = cv::Point2f(parallaxCalibPoints[parallaxCalibPoints.size() - 1].az, parallaxCalibPoints[parallaxCalibPoints.size() - 1].el);
 				//target = interpolateCalibPoints(parallaxCalibPoints[parallaxCalibPoints.size() - 2], parallaxCalibPoints[parallaxCalibPoints.size() - 1], searchDistance);
 		}
+		//std::cout << "Target point: " << target << " Distance: " << searchDistance << std::endl;
 	}
 	else {
 		//TODO: needs to be modified for current camera, although shouldn't really be used anyway
 		target = cv::Point2f(.5f, .5f + .05f / (searchDistance * std::tan(21.81f * 3.14157 / 180)));
 	}
-	//std::cout << "Target point: " << target << std::endl;
 	return target;
 }
 
 float MovementCalculator::getLaserDistance(cv::Point2f imgAngles) {
-	float minDist = 100.0f;
+	float minDist = 5000.0f;
 	int minIndex = -1;
 	for (int i = 0; i < parallaxCalibPoints.size(); i++) {
 		float diffAz = imgAngles.x - parallaxCalibPoints[i].az;
 		float diffEl = imgAngles.y - parallaxCalibPoints[i].el;
 		float dist = diffAz * diffAz + diffEl * diffEl;
-		//std::cout << "Distance to point " << i << ": " << dist << " diffAZ & diffEL: " << diffAz << " " << diffEl << std::endl;
+        // std::cout << "imgAngles: " << imgAngles.x << ", " << imgAngles.y << " Parallax Point: " << parallaxCalibPoints[i].az << ", " << parallaxCalibPoints[i].el << std::endl;
+		// std::cout << "Distance to point " << i << ": " << dist << " diffAZ & diffEL: " << diffAz << " " << diffEl << std::endl;
 		if (dist < minDist) {
 			minDist = dist;
 			minIndex = i;
@@ -303,6 +306,7 @@ bool MovementCalculator::saveCalibrationToJsonFile() {
 		}
 		cd.parallaxTable.auto_calib_x_offset = value.x_offset;
 		cd.parallaxTable.auto_calib_y_offset = value.y_offset;
+		cd.parallaxTable.Normalized_Pixels = false;
 
 		cHandle->updateCalibData(cd);
 		return cHandle->writeCalibFile("cam_calibration.json") == 0;
@@ -351,8 +355,33 @@ bool MovementCalculator::loadCalibrationFromJsonFile() {
 			CalibrationPoint cp;
 			cp.distance = cd.parallaxTable.distance[i];
 			cp.az = cd.parallaxTable.offset[i].first + cd.parallaxTable.auto_calib_x_offset;
-			cp.el = cd.parallaxTable.offset[i].second + + cd.parallaxTable.auto_calib_y_offset;
+			cp.el = cd.parallaxTable.offset[i].second + cd.parallaxTable.auto_calib_y_offset;
 			parallaxCalibPoints.push_back(cp);
+		}
+		std::cout << "Normalized pixels: " << cd.parallaxTable.Normalized_Pixels << " Parallax Calib Points Size: " << parallaxCalibPoints.size() << std::endl;
+		if (!camCalibManager) {
+				std::cout << "camCalibManager pntr is null!" << std::endl;
+				return false;
+			}
+		bool reloadCalib = camCalibManager->loadCalibrationFromFile();
+		if (!reloadCalib) {
+				std::cout << "Failed to load camera calibration from file." << std::endl;
+				return false;
+		}	
+		if (cd.parallaxTable.Normalized_Pixels == true) {
+			
+			cv::Size imageSize(3264, 2464);
+			float center_x = imageSize.width / 2.0f;
+			float center_y = imageSize.height / 2.0f;
+			std::vector<CalibrationPoint> normalizedPoints;
+			for(int j = 0; j < parallaxCalibPoints.size(); j++){
+				cv::Point2f normXY = camCalibManager->Norm_singleXYFromAzEl(parallaxCalibPoints[j].az, parallaxCalibPoints[j].el, cv::Size(3264, 2464));
+				CalibrationPoint normCp = parallaxCalibPoints[j];
+				normCp.az = (normXY.x - center_x);
+    			normCp.el = (-1) * (normXY.y - center_y); // negative because y-axis is inverted in image coordinates
+				normalizedPoints.push_back(normCp);
+			}
+			parallaxCalibPoints = normalizedPoints;
 		}
 		return true;
 	}
@@ -367,7 +396,7 @@ bool MovementCalculator::filterCalibData() {
         std::cout << "Filtering the parallax calibration" << std::endl;
         const char* pythonCommand = "python3";
         const char* pythonScript = "ILT_iVision_filter_track_calibration.py";
-        const char* jsonFilePath = "/home/radian/LT_iVision_from_git/src/cam_calibration.json";
+        const char* jsonFilePath = "/home/radian/LT_ivision_iLT/src/cam_calibration.json";
 
         std::string command = pythonCommand;
         command += " ";

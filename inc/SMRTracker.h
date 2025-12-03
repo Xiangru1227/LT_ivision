@@ -46,6 +46,7 @@ public:
 	//clear list of tracked SMRs
 	//(basically call this whenever you've stopped constantly tracking, so you don't have old SMRs hanging around)
 	void clearTracking();
+	int blind_redlaserCount;
 	bool laserHitSMR;
 private:
 

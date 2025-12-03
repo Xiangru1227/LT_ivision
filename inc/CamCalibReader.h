@@ -46,6 +46,7 @@ struct ParallaxTableStruct {
 	//std::vector<float> size;
 	double auto_calib_x_offset;
 	double auto_calib_y_offset;
+	bool Normalized_Pixels;
 
 	ParallaxTableStruct() {
 		distance.clear();
@@ -53,6 +54,7 @@ struct ParallaxTableStruct {
 		//size.clear();
 		auto_calib_x_offset = 0.0;
 		auto_calib_y_offset = 0.0;
+		Normalized_Pixels = true;
 
 	}
 };
@@ -89,9 +91,9 @@ public:
 	bool cam_auto_calib;
 	float target_intensity_threshold_high;
 	float target_intensity_threshold_low;
-	float auto_flash_adjust_factor;
 	float target_intensity_for_auto_exp;
 	int auto_exp_reset_interval;
+	float iv_mv_step_size;
 	cv::Mat FC_in_FB;
 
 	CalibData() {
@@ -113,9 +115,9 @@ public:
 		spiral_freq = 0.004f;
 		target_intensity_threshold_high = 60.0;
 		target_intensity_threshold_low = 20.0;
-		auto_flash_adjust_factor = 192.0;
 		target_intensity_for_auto_exp = 128.0;
 		auto_exp_reset_interval = 200;
+		iv_mv_step_size = 0.05f;
 		FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
 	}
 
@@ -138,9 +140,9 @@ public:
 		spiral_freq = 0.004f;
 		target_intensity_threshold_high = 60.0;
 		target_intensity_threshold_low = 20.0;
-		auto_flash_adjust_factor = 192.0;
 		target_intensity_for_auto_exp= 128.0;
 		auto_exp_reset_interval = 200;
+		iv_mv_step_size = 0.05f;
 		FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
         return 0;
     }

@@ -215,14 +215,6 @@ int CalibHandle::parseCalibFile() {
 		cData.cam_auto_calib = false;
 	}
 
-	//auto flash adjust factor
-	if (jsonReader["Product_Info"].isMember("auto_flash_adjust_factor")) {
-		cData.auto_flash_adjust_factor = jsonReader["Product_Info"]["auto_flash_adjust_factor"].asFloat();
-	}
-	else {
-		cData.auto_flash_adjust_factor = 0.5f;
-	}
-
 	//target intensity for auto exposure
 	if (jsonReader["Product_Info"].isMember("target_intensity_for_auto_exp")) {
 		cData.target_intensity_for_auto_exp = jsonReader["Product_Info"]["target_intensity_for_auto_exp"].asFloat();
@@ -254,6 +246,24 @@ int CalibHandle::parseCalibFile() {
 	else {
 		cData.target_intensity_threshold_low = 20.0f;
 	}
+
+	// ivision step movement
+	if (jsonReader["Product_Info"].isMember("iv_mv_step_size")) {
+		cData.iv_mv_step_size = jsonReader["Product_Info"]["iv_mv_step_size"].asFloat();
+	}
+	else {
+		cData.iv_mv_step_size = 0.05f;
+	}
+	
+
+	// flag to check if the existing calibration file contains normalized pixel coordinates or not - to support backward compatibility
+	if (jsonReader["Parallax"].isMember("Normalized_Pixels")) {
+		cData.parallaxTable.Normalized_Pixels = jsonReader["Parallax"]["Normalized_Pixels"].asBool();
+	}
+	else {
+		cData.parallaxTable.Normalized_Pixels = 1;
+	}
+
 	//Parallax auto calib offset setting from config file
 	if (jsonReader["Parallax"].isMember("AutoCalib_X_offset")) {
 		cData.parallaxTable.auto_calib_x_offset = jsonReader["Parallax"]["AutoCalib_X_offset"].asDouble();
@@ -467,6 +477,7 @@ int CalibHandle::updateCalibFields() {
 	//update the AutoCalib x and y offset
 	jsonReader["Parallax"]["AutoCalib_X_offset"] = cData.parallaxTable.auto_calib_x_offset;
 	jsonReader["Parallax"]["AutoCalib_Y_offset"] = cData.parallaxTable.auto_calib_y_offset;
+	jsonReader["Parallax"]["Normalized_Pixels"] = cData.parallaxTable.Normalized_Pixels;
 	
 	//update serial number
 	jsonReader["Product_Info"]["Serial_Number"] = cData.serial_num;
@@ -505,8 +516,6 @@ int CalibHandle::updateCalibFields() {
 	jsonReader["Product_Info"]["Spiral_freq"] = cData.spiral_freq;
 	//set auto calib config
 	jsonReader["Product_Info"]["cam_auto_calib"] = cData.cam_auto_calib;
-	//set auto flash adjust factor
-	jsonReader["Product_Info"]["auto_flash_adjust_factor"] = cData.auto_flash_adjust_factor;
 	//set auto target intensity for auto exposure
 	jsonReader["Product_Info"]["target_intensity_for_auto_exp"] = cData.target_intensity_for_auto_exp;
 	//auto exp reset interval
@@ -514,6 +523,8 @@ int CalibHandle::updateCalibFields() {
 	//target intensity threshold for auto exposure
 	jsonReader["Product_Info"]["target_intensity_threshold_high"] = cData.target_intensity_threshold_high;
 	jsonReader["Product_Info"]["target_intensity_threshold_low"] = cData.target_intensity_threshold_low;
+	//ivision step movement step size
+	jsonReader["Product_Info"]["iv_mv_step_size"] = cData.iv_mv_step_size;
 
 
 	//updating camera interface setting using config file

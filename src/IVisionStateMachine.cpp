@@ -239,17 +239,19 @@ void IVisionStateMachine::sendImages() {
 		if (!cam->grabNextJpeg(&buffer, size)) {
 			continue;
 		}
-		uint64_t Timestamp = cam->getTimeStamp();
-
-		std::vector<ImagePoint> smrs;
-		//TODO: get SMR list from smart camera
-		std::vector<SMRData> observedSMRs = cam->getTrackedSMRs();
 		
 		if (!cam->iProbeDetection()) {
 			// std::cout << "Failed to update iProbe centroids." << std::endl;
 		}
+		
+		std::vector<ImagePoint> smrs;
+		//TODO: get SMR list from smart camera
+		std::vector<SMRData> observedSMRs = cam->getTrackedSMRs();
+		
 		auto detectedCentroids = cam->getCentroids();
 		// std::cout << "iProbe centroid size: " << detectedCentroids.size() << std::endl;
+
+		uint64_t Timestamp = cam->getTimeStamp();
 
 		// std::ofstream os("TimeStamp.txt", std::ios::app);
 		// os << "Timestamp in St Ma  " << Timestamp <<" nano seconds\n";
@@ -408,23 +410,13 @@ bool IVisionStateMachine::handleSDKControls(ControlState state) {
 	if (flags.enter_iprobe) {
 		if (!cam->getIprobeMode()) {
 			cam->setIprobeMode(true);
-			exposureBuf = prop.exposure;
-			digitalGainBuf = prop.digital_gain;
-			analogGainBuf = prop.analog_gain;
-			prop.exposure = 10.0;
-			prop.digital_gain = 1.0;
-			prop.analog_gain = 1.0;
 		}
 	}
 	if (flags.exit_iprobe) {																																																															
 		if (cam->getIprobeMode()) {
 			cam->setIprobeMode(false);
-			prop.exposure = exposureBuf;
-			prop.digital_gain = digitalGainBuf;
-			prop.analog_gain = analogGainBuf;
 		}
 	}
-	// std::cout << "exposure: " << prop.exposure << std::endl;
 
 	//send changes to smart camera
 	bool success = cam->setProperties(prop);

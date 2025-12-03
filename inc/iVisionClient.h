@@ -57,6 +57,7 @@ public:
 	//tell the firmware to jog the camera by some amount
 	bool sendMoveBy(float x, float y);
 	bool sendMoveTo(float x, float y, float radius = 0.0f);
+	bool sendMoveTo_step(float x, float y, float radius);
 	bool SetSpiralSearch(float x, float y);
 	bool StartSearch(float dist, float freq);
 	bool SpiralInProgress = false;
@@ -74,6 +75,9 @@ public:
 	bool setFlashOffset(float offset);
 	bool setFlashDuration(float duration);
 	bool setFlashBrightness(float brightness);
+
+
+	bool setStepSize_for_iVisionMove (float step);
 
     //check if tracker has been still for a while
 	bool trackerStill();
@@ -129,10 +133,13 @@ private:
 	const float EL_THRESHOLD = 1.0f;  // Allowed elevation variation
 	const int STABLE_TIME_MS = 250;   // Stability time in milliseconds
 	const int SAMPLE_RATE = 1000;     // Data rate in Hz
-	const int REQUIRED_SAMPLES = (STABLE_TIME_MS * SAMPLE_RATE) / 1000;  // 500 samples for 500ms
+	const int REQUIRED_SAMPLES = (STABLE_TIME_MS * SAMPLE_RATE) / 1000;  // 250 samples for 250ms
+	
+	//ivision step movement
+	float step_size = 0.05; // Adjust step size as needed
+    const float threshold = 0.01f; // Acceptable error to stop
 
-
-    std::mutex dataLock;
+    std::mutex dataLock; 
     TrackerInfo lastData, imgData, imgData2;
 	float lastValidDistance;
 	int print_cnt = 0;

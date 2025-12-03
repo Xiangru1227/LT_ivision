@@ -482,6 +482,7 @@ void ImageProcessor::RemoveBadSMRs(std::vector<SMR>& src1List, cv::Mat src1Y,  c
 
 	// A vector to store the centers of the objects that passed the checks if they are too close to each other
     std::vector<cv::Point2f> centers;
+	std::vector<cv::Point2f> closeGroup;
 	int centerThreshold = 200; // in pixels 
 
 	int ignoreBorder = 3 * distanceThreshold / 4;
@@ -519,6 +520,12 @@ void ImageProcessor::RemoveBadSMRs(std::vector<SMR>& src1List, cv::Mat src1Y,  c
 		float centerX = src1List[i].GetCenterX();
 		float centerY = src1List[i].GetCenterY();
 
+		if (!IsColorReflection(smrROI, src1Y, src1U, src1V, centerX, centerY, size, 50, false)) {
+			src1List.erase(src1List.begin() + i);
+			std::cout << "Wrong color." << std::endl;
+			continue;
+		}
+
 		// Flag to check if the current object is too close to any other object
         bool tooClose = false;
 
@@ -539,24 +546,57 @@ void ImageProcessor::RemoveBadSMRs(std::vector<SMR>& src1List, cv::Mat src1Y,  c
                 }
             }
         }
+	
+		if (tooClose) {
+			// Erase the current object
+			
+			closeGroup.push_back(cv::Point2f(centerX, centerY));
+			//std::cout << "Group Size: " << closeGroup.size() << std::endl;
+			if (closeGroup.size() > 1) {
+				float sumX = 0, sumY = 0;
+				for (const auto& pt : closeGroup) {
+					sumX += pt.x;
+					sumY += pt.y;
+				}
+				cv::Point2f groupCenter(sumX / closeGroup.size(), sumY / closeGroup.size());
+				//std::cout << "Group center: (" << groupCenter.x << ", " << groupCenter.y << ")" << std::endl;
 
-        // If too close to another center, remove this one
-        if (tooClose) {
-            src1List.erase(src1List.begin() + i);
-            continue;
-        }
-
-        // Add the current center to the list of centers
-        centers.push_back(cv::Point2f(centerX, centerY));
-
-		if (!IsColorReflection(smrROI, src1Y, src1U, src1V, centerX, centerY, size, 50, false)) {
-			src1List.erase(src1List.begin() + i);
-			//std::cout << "Wrong color." << std::endl;
-			continue;
+				// Remove the close objects from src1List
+				std::vector<int> eraseIndices;
+				for (int j = 0; j < src1List.size(); ++j) {
+					for (const auto& pt : closeGroup) {
+						float dx = src1List[j].GetCenterX() - pt.x;
+						float dy = src1List[j].GetCenterY() - pt.y;
+						if (std::sqrt(dx * dx + dy * dy) < 200) { // very close
+							eraseIndices.push_back(j);
+							break;
+						}
+					}
+				}
+				// Erase from highest to lowest index
+				std::sort(eraseIndices.rbegin(), eraseIndices.rend());
+				eraseIndices.erase(std::unique(eraseIndices.begin(), eraseIndices.end()), eraseIndices.end());
+				for (int idx : eraseIndices) {
+					if (idx >= 0 && idx < src1List.size()) {
+						src1List.erase(src1List.begin() + idx);
+					}
+				}
+				
+				// Add a new SMR at the group center
+				src1List.push_back(SMR(groupCenter.x, groupCenter.y));
+				closeGroup.clear(); // Reset for next group if needed
+				break;
+				// Decrement i since we erased the current element
+				i--;
+    		}
+    		//continue;
 		}
-
+		//std::cout << "Not too close." << std::endl;
+			// Add the current center to the list of centers
+        centers.push_back(cv::Point2f(centerX, centerY));	
+		}
 	}
-}
+        
 
 //check for a bright white center surrounded by color against a dark background
 bool ImageProcessor::IsColorReflection(cv::Rect roi, cv::Mat srcY, cv::Mat srcU, cv::Mat srcV, float centerX, float centerY, int size, int redThreshold, bool laser) {

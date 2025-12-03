@@ -44,6 +44,9 @@ public:
 	std::vector<cv::Point2f> xyFromAzEl(std::vector<cv::Point2f> angles, cv::Size imageSize);
 	cv::Point2f singleXYFromAzEl(float az, float el, cv::Size imageSize);
 
+	cv::Point2f Norm_singleXYFromAzEl(float az, float el, cv::Size imageSize);
+	std::vector<cv::Point2f> Norm_xyFromAzEl(std::vector<cv::Point2f> angles, cv::Size imageSize); 
+
 	//get approximate size of a single pixel in radians
 	cv::Point2f pixelAngle(cv::Size imageSize);
 

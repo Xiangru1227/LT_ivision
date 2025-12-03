@@ -52,7 +52,6 @@ struct CameraProperties {
 	float analog_gain;	//camera analog gain
 	float digital_gain;	//camera digital gain
 	bool flash_on;	//flash on
-	cv::Mat FC_in_FB;
 };
 
 //stores ROI in pixel units along with bool representing if ROI is the entire image

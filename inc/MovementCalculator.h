@@ -6,9 +6,10 @@
 #include "CamCalibReader.h"
 #include "Utility.hpp"
 #include "iVisionClient.h"
+#include "CameraCalibrationManager.h"
 
 using namespace std::chrono;
-enum MovementType { NoMove, MoveBy, MoveTo, Spiral};
+enum MovementType { NoMove, MoveBy, MoveTo, MoveToStep, Spiral};
 
 struct Movement {
 	MovementType type;
@@ -91,6 +92,7 @@ private:
 	std::uniform_real_distribution<> dis;
 
 	CalibHandle* cHandle;
+	std::shared_ptr<CameraCalibrationManager> camCalibManager;
 	bool saveCalibrationToTxtFile();
 	bool saveCalibrationToJsonFile();
 	bool loadCalibrationFromTxtFile();

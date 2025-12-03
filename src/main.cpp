@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[]) {
 
-	printf("iVision ver: %d.%d @ %s %s\n",MAJOR_REVISION,MINOR_REVISION, __TIME__, __DATE__);
+	printf("iVision ver: %d.%d @ %s %s\n",MAJOR_REVISION,MINOR_REVISION);
 	IVisionStateMachine stateMachine;
 
 	bool startingDetectPlus = false;

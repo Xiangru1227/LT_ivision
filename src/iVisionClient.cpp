@@ -9,6 +9,7 @@
 #include <google/protobuf/io/coded_stream.h>
 #include <chrono>
 #include <vector>
+#include <thread>
 
 #include <string.h>
 //constructor/destructor
@@ -85,8 +86,6 @@ bool iVisionClient::sendMoveBy(float x, float y) {
 
 bool iVisionClient::sendMoveTo(float x, float y, float radius) {
 	
-	float cur_az = currentAzimuth();
-	float cur_el = currentElevation();
     std::vector<float> prm;
     prm.push_back(x);
     prm.push_back(y);
@@ -97,6 +96,48 @@ bool iVisionClient::sendMoveTo(float x, float y, float radius) {
 		return sendCommand(iVisionCommunication::MoveTo, prm);
 	return true;
 
+}
+
+bool iVisionClient:: setStepSize_for_iVisionMove (float step) {
+	step_size = step; 
+	return true;
+	}
+
+bool iVisionClient::sendMoveTo_step(float x, float y, float radius) {
+    float cur_az = currentAzimuth();
+    float cur_el = currentElevation();
+    smrStableCount = 0;
+
+    if (lastData.trk_op_mode == trk_OP_Mode::Track || lastData.trk_op_mode == trk_OP_Mode::TrackIdle) {
+		std::cout << "Step Size " << step_size << std::endl;
+        while (true && !hasSMRLock()) {
+            cur_az = currentAzimuth();
+            cur_el = currentElevation();
+            float diff_az = x - cur_az;
+            float diff_el = y - cur_el;
+
+            // Check if within threshold
+            if (std::abs(diff_az) < threshold && std::abs(diff_el) < threshold) {
+                break;
+            }
+
+            // Calculate next step
+            float step_az = (std::abs(diff_az) > step_size) ? step_size * ((diff_az > 0) ? 1 : -1) : diff_az;
+            float step_el = (std::abs(diff_el) > step_size) ? step_size * ((diff_el > 0) ? 1 : -1) : diff_el;
+
+            std::vector<float> prm;
+            prm.push_back(cur_az + step_az);
+            prm.push_back(cur_el + step_el);
+            prm.push_back(radius);
+
+            sendCommand(iVisionCommunication::MoveTo, prm);
+
+            
+            usleep(3000);
+        }
+        return true;
+    }
+    return true;
 }
 
 bool iVisionClient::SetSpiralSearch(float x, float y){
@@ -200,7 +241,7 @@ bool iVisionClient::sendState() {
 bool iVisionClient::trackerStill() {
     std::lock_guard<std::mutex> guard(dataLock);
 	//std::cout << "SMR Stable Count:" << smrStableCount << std::endl;
-    return (smrStableCount > 400);
+    return (smrStableCount > 100);
 }
 
 //not totally sure what this is, I don't know if it's based on SMR movement or just how long it's been locked onto it
@@ -371,9 +412,9 @@ void iVisionClient::runRT() {
 					//ref mode currently not 	, also might not matter usually				
 					
 					// Ensure valid data
-					if (/*tkinfo.distance > 0 && tkinfo.distance != 45000.0f &&*/  !tkinfo.refMode) {
+					if (tkinfo.distance > 0 && tkinfo.distance != 45000.0f && !tkinfo.refMode) {
 				
-						// Store last valid distance if locked
+						// Store last valid distance if lockeds
 						if (tkinfo.locked) {
 							lastValidDistance = tkinfo.distance;
 							smrStableCount = 0;
@@ -382,7 +423,7 @@ void iVisionClient::runRT() {
 						//std::cout << "Distance Command: " << tkinfo.distance_command << std::endl;
 						else if (tkinfo.jog_heartBeat != last_jog_hb) {
 							last_jog_hb = tkinfo.jog_heartBeat;
-							lastValidDistance = tkinfo.distance_command; // Store last valid distance
+							//lastValidDistance = tkinfo.distance_command; // Store last valid distance
 							//std::cout << "distance_command changed, updating distance to: " << lastValidDistance  << std::endl;
 						}
 				
@@ -406,7 +447,7 @@ void iVisionClient::runRT() {
 							maxDiffEL = std::max(maxDiffEL, std::abs(data.second - tkinfo.el));
 						}
 				
-						// Check stability over 500ms
+						// Check stability over 250ms
 						if (maxDiffAZ <= AZ_THRESHOLD && maxDiffEL <= EL_THRESHOLD) {
 							smrStableCount++;  // Position stable, increment count
 						} else {

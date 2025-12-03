@@ -18,7 +18,7 @@
 
 //iVision Firmware Version Numbers
 #define MAJOR_REVISION 1
-#define MINOR_REVISION 04 
+#define MINOR_REVISION 05 
 #define SUB_REVISION NULL
 
 //incorrect ports for local testing

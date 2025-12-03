@@ -28,16 +28,9 @@ bool StateSingleSMR::enterState() {
 	if(firmware->is_Spiral()){
 		firmware->StopSearch();
 	}
-	//make sure camera has started video capture
-	usingCamera = true;
-	//load smart camera calibration data to prepare for SMR tracking
-	cam->stopVideo();
-	if (!cam->loadCalibration())
-		return false;
-	cam->startVideo();
 	//make sure PSD is set to lock
 	firmware->setPSDLockFlag(true);
-	firmware->setFlashInTK(true);
+	cam->reset_tracking_state();
 	return true;
 }
 
@@ -60,7 +53,11 @@ bool StateSingleSMR::stateAction() {
 	}
 		
 	if (firmware->hasSMRLock()) {
+		if (!cam->getIprobeLocked()) {
+			cam->setIprobeLocked(true);
+		}
 		firmware->setFlashInTK(false);
+		cam->setCurrentState(cam->tracking_movement_State::INIT);
 		// not the best way to see the mode, need to revisit.
 		cam->Spiral_counter = 0;
 		cam->no_mv_cnt_ang = 0;
@@ -69,14 +66,24 @@ bool StateSingleSMR::stateAction() {
 		cam->reportTrackerLock(true, tkr.az, tkr.el, cam->cam_auto_calib, tkr.distance / 1000, firmware->SMRStableDuration());
 		cam->clearSMRTracking();
 		
-		cam->auto_exp_counter++;
-		//std::cout <<"auto exp cntr:" << cam->auto_exp_counter << std::endl;
-		if(cam->auto_exp_counter >= cam->auto_exp_reset_interval){
-			cam->auto_exp_counter = 0;
-			cam->stopVideo();
-				if (!cam->loadCalibration())
-					return false;
-			cam->startVideo();
+		if (cam->getIprobeMode() && cam->getIprobeLocked()) {
+			if(!cam->iprobe_stream_active){
+				cam->stopVideo();
+				cam->setIprobeCameraProp();
+				cam->startVideo();
+				cam->video_stream_active = false;
+			}
+		}
+		else {
+			if(!cam->video_stream_active){
+				cam->auto_exp_counter = 0;
+				cam->stopVideo();
+					if (!cam->loadCalibration())
+						return false;
+				cam->setVideoStreamCameraProp();
+				cam->startVideo();
+				cam->iprobe_stream_active = false;
+			}
 		}
 		
 		printCounter++;
@@ -87,7 +94,18 @@ bool StateSingleSMR::stateAction() {
 		
 		return true;
 	} else {
-		cam->setIprobeMode(false);
+		if (cam->getIprobeLocked()) {
+			cam->setIprobeLocked(false);
+		}
+		if(cam->video_stream_active || cam->iprobe_stream_active){
+			cam->auto_exp_counter = 0;
+			cam->stopVideo();
+				if (!cam->loadCalibration())
+					return false;
+			cam->startVideo();
+			cam->video_stream_active = false;
+			cam->iprobe_stream_active = false;
+		}
 		firmware->setFlashInTK(true);
 	}
 	cam->reportTrackerLock(false, tkr.az, tkr.el);
@@ -104,6 +122,10 @@ bool StateSingleSMR::stateAction() {
 		//std::cout << "Moving to " << mov.az << ' ' << mov.el << " radius: " << mov.radius << '\n';
 		return firmware->sendMoveTo(mov.az, mov.el, mov.radius);
 	}
+	else if (mov.type == MoveToStep && firmware->trackerStill()) {
+		//std::cout << "Moving to Step " << mov.az << ' ' << mov.el << " radius: " << mov.radius << '\n';
+		return firmware->sendMoveTo_step(mov.az, mov.el, mov.radius);
+	}
 	else if (mov.type == Spiral) {
 		if (cam->spiral_dist > 0.02f) {
 			firmware->SetSpiralSearch(mov.az, mov.el);
@@ -119,6 +141,7 @@ bool StateSingleSMR::stateAction() {
 
 bool StateSingleSMR::leaveState() {
 	firmware->StopSearch();
+	firmware->setFlashInTK(false);
 	cam->Spiral_counter = 0;
 	std::cout << "Leaving Single SMR State." << std::endl;
 	return true;

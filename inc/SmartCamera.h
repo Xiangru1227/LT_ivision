@@ -25,9 +25,9 @@
 #include "IprobeCalibReader.h"
 
 struct ContourFilterParams {
-    double min_circularity = 0.6;
+    double min_circularity = 0.5;
     double max_circularity = 1.0;
-    double min_convexity = 0.6;
+    double min_convexity = 0.5;
     double max_convexity = 1.0;
     double min_inertia_ratio = 0.3;
 };
@@ -51,7 +51,8 @@ public:
 	bool setProperties(CameraProperties prop);	//set camera properties (should be called before startVideo)
 	CameraProperties getProperties();	//current camera properties
 	void setAutoLockCameraProp(); // used to change camera properties for single,Multi, manual SMR state
-	void setRegCamProp(); // used to change the cam propeties  to default after autolock state
+	void setVideoStreamCameraProp(); // used to change the cam propeties  to default after autolock state
+	void setIprobeCameraProp(); // used to change the cam propeties for iProbe mode
 	bool enableCameraFlash();	//turn on camera flash (should be called while video capture is running)
 	bool disableCameraFlash();	//turn off camera flash (should be called while video capture is running)
 	bool running();		//is camera currently capturing images (i.e. startVideo has been called)?
@@ -80,6 +81,7 @@ public:
 	const int DistEstSMRTypeSolid = 1;
 	float EstDist;
 	float spiral_dist;
+	bool blinded_SMR = false; //used to check if the SMR is blinded by the laser
 	//bool updateSMRTracking(float img1AzTop, float img1ElTop, float img1AzBot, float img1ElBot);
 	void clearSMRTracking();
 
@@ -111,6 +113,8 @@ public:
 
 	//AutoExposure
 	int auto_exp_reset_interval;
+	bool video_stream_active = false;
+	bool iprobe_stream_active = false;
 	int auto_exp_counter;
 	float targetIntensity;
 	double avg_intensity;
@@ -119,7 +123,6 @@ public:
 	void setTargetInt_Thresh(float targetIntHigh, float targetIntLow){target_intensity_for_thresh_high = targetIntHigh; target_intensity_for_thresh_low = targetIntLow;}
 	void setTargetIntensity_forAutoExp(float targetInt){targetIntensity = targetInt;}
 	void setAutoExpResetInterval(int interval){auto_exp_reset_interval = interval;}
-	double adjustFlashBrightness(double avgIntensity, float flash_targetIntensity);
 	bool checkNeedsAutoExposure();
 	double getAvgIntensity(cv::Mat img);
 
@@ -189,6 +192,15 @@ public:
 	void setOutdoorExp();
 	void setIndoorExp();
 
+	//states required for the tracker moving
+	enum tracking_movement_State {
+        INIT, SEARCH_IN_PROGRESS, FIRSTJOG, SPIRAL_MOVEMENT, REGULAR_JOG, TARGET_NOT_FOUND, STUCK_HANDLING
+    };
+	//movement tracking state initialization
+	tracking_movement_State currentState;
+	void setCurrentState(tracking_movement_State state) { currentState = state; } //set the current state of the tracker
+
+
 	//object detection
 
 	bool updateDetectionImage();		//give newest full resolution image to object detector
@@ -242,6 +254,7 @@ private:
 	cv::Mat trigger_binary;
     cv::Mat processed;
 	cv::Mat kernel_morph;
+	cv::Mat kernel_morph_open;
 	cv::cuda::GpuMat d_eroded;
 	cv::cuda::GpuMat d_green_gpu;
 	cv::cuda::GpuMat d_green_trigger;
@@ -262,14 +275,8 @@ private:
 	//exp setting
 	bool outdoor_mode = false;
 	bool indoor_mode = true;
-
-	//states required for the tracker moving
-	enum tracking_movement_State {
-        INIT, SEARCH_IN_PROGRESS, FIRSTJOG, SPIRAL_MOVEMENT, REGULAR_JOG, TARGET_NOT_FOUND, STUCK_HANDLING
-    };
-	//movement tracking state initialization
-	tracking_movement_State currentState = INIT;
 	
+
 	//AutoExpo
 	double getAutoExposureValue();
 	//helper functions

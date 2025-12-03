@@ -201,6 +201,26 @@ cv::Point2f CameraCalibrationManager::singleXYFromAzEl(float az, float el, cv::S
 	return xyFromAzEl(azel, imageSize)[0];
 }
 
+
+cv::Point2f CameraCalibrationManager::Norm_singleXYFromAzEl(float az, float el, cv::Size imageSize) {
+	std::vector<cv::Point2f> azel(1, cv::Point2f(az,el));
+	return Norm_xyFromAzEl(azel, imageSize)[0];
+}
+
+//get image x/y coordinates based on camera angles
+std::vector<cv::Point2f> CameraCalibrationManager::Norm_xyFromAzEl(std::vector<cv::Point2f> angles, cv::Size imageSize) {
+	cv::Mat cm = getScaledCameraMatrix(imageSize);
+
+	float cy = 1 - (cm.at<double>(1,2)/imageSize.height);
+	float cy_scaled = cy * imageSize.height;
+	std::vector<cv::Point2f> xys;
+	for (int i = 0; i < angles.size(); i++) {
+		xys.push_back(cv::Point2f(std::tan(angles[i].x) * cm.at<double>(0,0) + cm.at<double>(0,2), std::tan(angles[i].y) * cm.at<double>(1,1) + cy_scaled));
+		//std::cout << "Norm XY: " << xys[i] << std::endl;
+	}
+	return xys;
+}
+
 cv::Point2f CameraCalibrationManager::pixelAngle(cv::Size imageSize) {
 	if (imageSize == pixel_ang_img_size) {
 		return pixel_ang;
@@ -325,6 +345,11 @@ bool CameraCalibrationManager::loadCalibrationFromTxtFile() {
 }
 
 bool CameraCalibrationManager::loadCalibrationFromJsonFile() {
+		
+	if (!cHandle) {
+		std::cout << "CameraCalibrationManager::cHandle is null!" << std::endl;
+		return false;
+	}
 	if (cHandle->readCalibFile("cam_calibration.json") == 0) {
 		CalibData cd;
 		cHandle->getUpdatedCalibData(cd);
@@ -334,6 +359,7 @@ bool CameraCalibrationManager::loadCalibrationFromJsonFile() {
 		cameraMatrix.at<double>(1,1) = cd.camCalib.cam_fy;
 		cameraMatrix.at<double>(1,2) = cd.camCalib.cam_cy;
 		cameraMatrix.at<double>(2,2) = 1;
+		//std::cout << "Camera matrix in LoadCalibFile: " << cameraMatrix << std::endl;
 		distortionCoeffs = cv::Mat(5, 1, CV_64FC1);
 		distortionCoeffs.at<double>(0,0) = cd.camCalib.dist_k1;
 		distortionCoeffs.at<double>(1,0) = cd.camCalib.dist_k2;

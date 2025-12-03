@@ -10,6 +10,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudaimgproc.hpp>
+#include <opencv2/calib3d.hpp>
 #include "kernel.cuh"
 #include <chrono>
 
@@ -24,17 +25,18 @@ SmartCamera::SmartCamera(iVisionClient *firmware): firmware_(firmware) {
 	blobParams.blobColor = 255;
 	blobParams.filterByArea = true;
 	blobParams.filterByCircularity = true;
-	blobParams.minCircularity = 0.3f;
+	blobParams.minCircularity = 0.2f;
 	blobParams.filterByConvexity = true;
-	blobParams.minConvexity = 0.3f;
+	blobParams.minConvexity = 0.2f;
 	blobParams.filterByInertia = true;
-	blobParams.minInertiaRatio = 0.3f;
+	blobParams.minInertiaRatio = 0.2f;
 
 	gaussFilter = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, cv::Size(5, 5), 0);
     cannyDetector = cv::cuda::createCannyEdgeDetector(70.0, 150.0);
     kernel_morph = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3));
 	dilateFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, CV_8UC1, kernel_morph);
-	openFilter = cv::cuda::createMorphologyFilter(cv::MORPH_OPEN, CV_8UC1, kernel_morph);
+    kernel_morph_open = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
+	openFilter = cv::cuda::createMorphologyFilter(cv::MORPH_OPEN, CV_8UC1, kernel_morph_open);
 }
 
 //destructor (don't need to do anything now)
@@ -75,6 +77,24 @@ bool SmartCamera::setProperties(CameraProperties prop) {
 	return true;
 }
 
+void SmartCamera::setVideoStreamCameraProp(){
+	CameraProperties prop;
+	prop.res_x = 3264;
+	prop.res_y = 2464;
+	prop.video_res_x = 960;
+	prop.video_res_y = 720;
+	prop.video_roi_x = 0;
+	prop.video_roi_y = 0;
+	prop.video_roi_width = 1;
+	prop.video_roi_height = 1;
+	prop.fps = 21;
+	prop.exposure = 25;;
+	prop.analog_gain = 2.5f;
+	prop.digital_gain = 2.5f;
+	video_stream_active = true;
+	setProperties(prop);
+}
+
 void SmartCamera::setAutoLockCameraProp(){
 	CameraProperties prop;
 	prop.res_x = 3264;
@@ -89,11 +109,10 @@ void SmartCamera::setAutoLockCameraProp(){
 	prop.exposure = getAutoExposureValue();
 	prop.analog_gain = 2.0f;
 	prop.digital_gain = 2.0f;
-	prop.FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
 	setProperties(prop);
 }
 
-void SmartCamera::setRegCamProp(){
+void SmartCamera::setIprobeCameraProp(){
 	CameraProperties prop;
 	prop.res_x = 3264;
 	prop.res_y = 2464;
@@ -104,10 +123,10 @@ void SmartCamera::setRegCamProp(){
 	prop.video_roi_width = 1;
 	prop.video_roi_height = 1;
 	prop.fps = 21;
-	prop.exposure = 5.0;
-	prop.analog_gain = 2.8f;
-	prop.digital_gain = 2.3f;
-	prop.FC_in_FB = cv::Mat::eye(3, 3, CV_64F);
+	prop.exposure = 10.0;
+	prop.analog_gain = 1.0f;
+	prop.digital_gain = 1.0f;
+	iprobe_stream_active = true;
 	setProperties(prop);
 }
 
@@ -152,15 +171,6 @@ double SmartCamera::getAutoExposureValue() {
 	return exposureAdjustment;
 }
 
-//obtain flash brightness value depending on the camera exposure.
-//lower the exposure - higher the brightness; 
-//because lower exposure means higher avg pix intensity, hence possibly outdoor
-double SmartCamera::adjustFlashBrightness(double avgIntensity, float flash_targetIntensity) {
-    float brightness = 1.0f - (avg_intensity / flash_targetIntensity);
-	//std::cout << "Auto Flash Value: " << std::clamp(brightness, 0.05f, 1.0f) << std::endl;
-    return std::clamp(brightness, 0.05f, 1.0f);  // Ensure brightness is within [0.05,1]
-}
-
 bool SmartCamera::grabNextProcessJpeg(char** buf, unsigned long& data_size) {
 	unsigned long imageTime;
 	return cam.nextProcessImageJpeg(buf, data_size, imageTime);
@@ -168,13 +178,13 @@ bool SmartCamera::grabNextProcessJpeg(char** buf, unsigned long& data_size) {
 
 //return the most recent image from the camera (block until new image is received)
 bool SmartCamera::grabNextJpeg(char** buf, unsigned long& data_size) {
-	if (!getIprobeMode() || !getIprobeLocked()) {
+	// if (!getIprobeMode() || !getIprobeLocked()) {
 		return cam.nextVideoImage(buf, data_size, this->imgTime);
-	}
-	else {
-		unsigned long imageTime;
-		return cam.nextVideoImage(buf, data_size, imageTime);
-	}
+	// }
+	// else {
+	// 	unsigned long imageTime;
+	// 	return cam.nextVideoImage(buf, data_size, imageTime);
+	// }
 }
 
 uint64_t SmartCamera::getTimeStamp() {
@@ -376,6 +386,7 @@ bool SmartCamera::iProbeDetection() {
         // std::cout << "Not in iProbe mode." << std::endl;
         return false;
     }
+	// std::cout << "In iProbe mode." << std::endl;
 
     if (!getIprobeLocked()) {
         if (camLedOn) {
@@ -423,7 +434,8 @@ bool SmartCamera::iProbeDetection() {
 	}
 
     cv::Mat y, u, v, rgba;
-    if (!cam.nextProcessImage(y, true, u, true, v, true, rgba, false, true, this->imgTime)) {
+	unsigned long imgTime;
+    if (!cam.nextProcessImage(y, true, u, true, v, true, rgba, false, true, imgTime)) {
 		std::cerr << "Grab image failed." << std::endl;
         return false;
 	}
@@ -464,6 +476,50 @@ bool SmartCamera::iProbeDetection() {
     std::cout << "Detected centroid size: " << centroids.size() << std::endl;
 
 	std::cout << "[TIMER] Total iProbe Processing time: " << duration_cast<milliseconds>(t3 - t0).count() << " ms\n\n";
+
+	// Optional: estimate pose from detected centroids using PnP with 17 iProbe object points
+	// if (centroids.size() >= 17) {
+	// 	std::vector<cv::Point3f> objectPoints;
+	// 	objectPoints.emplace_back(-0.2551f, 54.145f, 87.206f);
+	// 	objectPoints.emplace_back(0.402f, 54.146f, -87.0352f);
+	// 	objectPoints.emplace_back(-87.21f, 54.3134f, 0.0942200149f);
+	// 	objectPoints.emplace_back(87.833f, 54.205f, -0.5047f);
+	// 	objectPoints.emplace_back(0.3109f, 42.979f, 62.505f);
+	// 	objectPoints.emplace_back(-0.3822f, 26.8662f, 43.228f);
+	// 	objectPoints.emplace_back(-0.404940651f, 11.206f, 24.441f);
+	// 	objectPoints.emplace_back(0.74f, 42.5786f, -62.505f);
+	// 	objectPoints.emplace_back(-0.3046f, 26.943f, -43.563f);
+	// 	objectPoints.emplace_back(0.2606f, 10.989f, -24.306f);
+	// 	objectPoints.emplace_back(-62.615f, 43.2588f, -0.6616f);
+	// 	objectPoints.emplace_back(-43.194f, 26.989f, -0.367f);
+	// 	objectPoints.emplace_back(-24.489f, 11.437f, -0.4907f);
+	// 	objectPoints.emplace_back(62.867f, 42.978f, -0.114292058f);
+	// 	objectPoints.emplace_back(43.645f, 26.9465f, 0.4722f);
+	// 	objectPoints.emplace_back(24.317f, 10.84f, 0.254f);
+	// 	objectPoints.emplace_back(-0.3887f, -0.7839f, 0.3647382232f);
+
+	// 	std::vector<cv::Point2f> imagePoints;
+	// 	for (int i = 0; i < 17; ++i) imagePoints.push_back(centroids[i]);
+
+	// 	cv::Mat K = getCameraIntrinsicMat();
+	// 	if (!K.empty()) {
+	// 		cv::Mat distCoeffs = cv::Mat::zeros(5, 1, CV_64F);
+	// 		cv::Mat rvec, tvec;
+	// 		bool pnp_ok = cv::solvePnP(objectPoints, imagePoints, K, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_ITERATIVE);
+	// 		if (pnp_ok) {
+	// 			std::cout << "[PnP] rvec = [" << rvec.at<double>(0,0) << ", "
+	// 					  << rvec.at<double>(1,0) << ", "
+	// 					  << rvec.at<double>(2,0) << "], "
+	// 					  << "tvec = [" << tvec.at<double>(0,0) << ", "
+	// 					  << tvec.at<double>(1,0) << ", "
+	// 					  << tvec.at<double>(2,0) << "]" << std::endl;
+	// 		} else {
+	// 			std::cout << "[PnP] solvePnP failed." << std::endl;
+	// 		}
+	// 	} else {
+	// 		std::cout << "[PnP] Camera intrinsic matrix unavailable." << std::endl;
+	// 	}
+	// }
 
     return true;
 }
@@ -744,6 +800,8 @@ void SmartCamera::initPinnedHostMemory(int width, int height, size_t y_step, siz
 bool SmartCamera::updateTriggerROI(const cv::Size& imageSize,
                                    float roiRange) {
     double range = roiRange * 1;
+	// std::cout << "Range: " << range << std::endl;
+	// std::cout << "SMR Coord: " << smrCoord.x << ", " << smrCoord.y << std::endl;
 
     int x_start = std::max(static_cast<int>(smrCoord.x - range), 0);
     int y_start = std::max(static_cast<int>(smrCoord.y - range), 0);
@@ -752,6 +810,8 @@ bool SmartCamera::updateTriggerROI(const cv::Size& imageSize,
 
     int width  = x_end - x_start + 1;
     int height = y_end - y_start + 1;
+
+	// std::cout << "Trigger ROI: " << x_start << ", " << y_start << ", " << width << ", " << height << std::endl;
 
     if (width <= 0 || height <= 0) {
         this->triggerROI = cv::Rect();
@@ -792,7 +852,7 @@ bool SmartCamera::detectTriggerLED(const cv::cuda::GpuMat& d_g) {
 	cv::Rect center_roi(x_start, y_start, box_size, box_size);
 	trigger_binary(center_roi).setTo(0);
 	
-    float currentMinArea = iprobeParams.Centroid_area * 0.5f;
+    float currentMinArea = iprobeParams.Centroid_area * 0.15f;
     float currentMaxArea = iprobeParams.Centroid_area * 1.5f;
 	
     if (currentMinArea != prevMinArea || currentMaxArea != prevMaxArea) {
@@ -1045,7 +1105,7 @@ bool SmartCamera::filterContours(const std::vector<std::vector<cv::Point>>& inpu
 
     for (const auto& contour : inputContours) {
         double area = cv::contourArea(contour);
-        if (area < iprobeParams.Centroid_area * 0.3 || area > iprobeParams.Centroid_area * 1.2) continue;
+        if (area < iprobeParams.Centroid_area * 0.2 || area > iprobeParams.Centroid_area * 1.2) continue;
 
         double perimeter = cv::arcLength(contour, true);
         if (perimeter == 0) continue;
@@ -1188,6 +1248,7 @@ void SmartCamera::drawCentroids(const cv::Mat& image, cv::Point2f smrCoord) {
     cv::imwrite("img_with_keypoints.png", img_with_keypoints);
 }
 
+
 bool SmartCamera::addTeachTarget(float imgX, float imgY) {
 		cv::Point2f imgAzEl = camCalib.singleAzElFromXY(imgX, imgY, cam.getResolution());
 
@@ -1299,7 +1360,7 @@ Movement SmartCamera::findTrackingMovement() {
 	cv::Point2f trkAngles = tracker.getLastTrkAngles();
 	TargetData target = targeter.findTargetData(tracker.getCurrentTrackedSMRs());
 	float last_dist_command = ((firmware_->currentDistance() / 1000.0) > 0.0 )? firmware_->currentDistance() / 1000.0 : 1.0;
-	std::cout << "Last good dist: " << last_dist_command << std::endl;
+	//std::cout << "Last good dist: " << last_dist_command << std::endl;
 	// std::cout << "current search dist: " << searcher.getCurrentSearchDistance() << std::endl;
 	spiral_dist = searcher.getLaserObservedDistance();
 	cv::Point2f laserPoint = moveCalc.getLaserPoint(searcher.getCurrentSearchDistance());
@@ -1321,7 +1382,7 @@ Movement SmartCamera::findTrackingMovement() {
                 //std::cout << "INIT state" << std::endl;
 				if (target.found)
 					currentState = REGULAR_JOG;
-				else if (target.hitByLaser)
+				else if (target.hitByLaser || tracker.laserHitSMR)
 					currentState = SPIRAL_MOVEMENT;
                 else {
                     currentState = SEARCH_IN_PROGRESS;
@@ -1342,12 +1403,12 @@ Movement SmartCamera::findTrackingMovement() {
                 if (firmware_->is_Spiral()) {
                     result = { NoMove, 0, 0, 0 };
                     return result;
-                } else if (target.hitByLaser) {
+                } else if (target.hitByLaser || tracker.laserHitSMR) {
                     no_mv_cnt_ang = 0;
                     no_mv_cnt_img = 0;
                     Spiral_counter = 0;
                     currentState = SPIRAL_MOVEMENT;
-                } else if (target.found && !target.hitByLaser) {
+                } else if (target.found && !target.hitByLaser && !tracker.laserHitSMR) {
                     currentState = REGULAR_JOG;
                 } else {
                     currentState = TARGET_NOT_FOUND;
@@ -1361,6 +1422,7 @@ Movement SmartCamera::findTrackingMovement() {
 			if ((!target.hitByLaser && (fabs(jog_comm.az - firmware_->currentAzimuth()) >= spiral_thresh) || (fabs(jog_comm.el - firmware_->currentElevation()) >= spiral_thresh) || Spiral_counter >= spiral_timeout) && firmware_->is_Spiral()){
 					//std::cout <<"Stopping spiral search due to timeout or distance threshold, Timeout:" << Spiral_counter << " Distance:(" << (fabs(jog_comm.az - firmware_->currentAzimuth()) >= spiral_thresh) << "," << (fabs(jog_comm.el - firmware_->currentElevation()) >= spiral_thresh) << ")" << std::endl;
 					Spiral_counter = 0;
+					tracker.laserHitSMR = false;
 					firmware_->StopSearch();
 					currentState = INIT;
 				}
@@ -1372,18 +1434,17 @@ Movement SmartCamera::findTrackingMovement() {
                 
 
             case REGULAR_JOG:
-			//std::cout << "REGULAR_JOG state" << std::endl;
-                std::cout << "Laser hit? : " << target.hitByLaser << std::endl;
-				if(target.hitByLaser)
+			std::cout << "REGULAR_JOG state" << std::endl;
+            //std::cout << "Laser hit? : " << target.hitByLaser << std::endl;
+			//std::cout << "Tracker Laser hit? : " << tracker.laserHitSMR << std::endl;
+				if(target.hitByLaser || tracker.laserHitSMR) {
 					currentState = SPIRAL_MOVEMENT;
-
-                else if (target.found && !target.hitByLaser){
-					result = moveCalc.getMovement(trkAngles.x, trkAngles.y, target.imgAz, target.imgEl, searcher.getCurrentSearchDistance(), target.hitByLaser, back_cam, camCalib.pixelAngle(cv::Size(3264, 2464)));
-					//std::cout << "Regular Jog Dist: " << last_dist_command << std::endl;
-					return result;
 				}
-				else{
-					result = { NoMove, 0, 0.05, 0 };
+				
+				else if (target.found) {
+					result = moveCalc.getMovement(trkAngles.x, trkAngles.y, target.imgAz, target.imgEl, searcher.getCurrentSearchDistance(), target.hitByLaser, back_cam, camCalib.pixelAngle(cv::Size(3264, 2464)));
+					//std::cout << "Regular Jog MovTo StepWise" << std::endl;
+					result.type = MoveToStep;
 					return result;
 				}
 
@@ -1426,11 +1487,12 @@ void SmartCamera::reportTrackerLock(bool locked, float az, float el, bool update
 	float el_tmp = el;
 	smrAnglesFromLock(az_tmp, el_tmp, smrDistance);
 	targeter.reportLock(locked, az_tmp, el_tmp, smrDistance, DegreeToRadian(az), DegreeToRadian(el));
-	tracking_movement_State currentState = INIT;
-	if (locked) {
+	if(locked){
 		reset_tracking_state();
-		searcher.reportLock();
+		tracker.laserHitSMR = false; //reset the laser hit SMR flag
 	}
+	searcher.reportLock();
+	
 	if (updateCalibration) { // if the user wants  to enable auto calibration, one can do so from the cam_calibration.json file
 		//std::cout << "Stable Duration " << stableDuration << std::endl;
 		if (locked && stableDuration > 1)  { //number of cycles
@@ -1558,9 +1620,9 @@ void SmartCamera::setIndoorExp() {
 //also load SMR angle/distance calibration
 //also set image processing brightness threshold, Camera Properties and LED Flash settings
 bool SmartCamera::loadCalibration() {
-	if(!camCalib.loadCalibrationFromFile())
+	if(!camCalib.loadCalibrationFromFile())	 
 		return false;
-	camCalib.initializeUndistortionMaps(cam.getResolution());
+	//camCalib.initializeUndistortionMaps(cam.getResolution());
 	if (!moveCalc.loadParallaxCalibrationFile())
 		return false;
 	CalibData cd;
@@ -1573,7 +1635,9 @@ bool SmartCamera::loadCalibration() {
 	setTargetInt_Thresh(cd.target_intensity_threshold_high, cd.target_intensity_threshold_low);
 	setTargetIntensity_forAutoExp(cd.target_intensity_for_auto_exp);
 	setAutoExpResetInterval(cd.auto_exp_reset_interval);
-	setAutoLockCameraProp();
+	if(!getIprobeMode() || !getIprobeLocked()) {
+		setAutoLockCameraProp();
+	}
 	firmware_->setFlashBrightness(cd.flash_brightness);
 	if(outdoor_mode){
 		//std::cout << "Outdoor Mode: " << outdoor_mode << std::endl;
@@ -1590,6 +1654,7 @@ bool SmartCamera::loadCalibration() {
 	
 	firmware_->setFlashDuration(cd.flash_duration);
 	firmware_->setFlashOffset(cd.flash_offset);
+	firmware_->setStepSize_for_iVisionMove(cd.iv_mv_step_size);
 	return true;
 }
 

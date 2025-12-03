@@ -15,18 +15,31 @@ StateVideo::~StateVideo() {
 }
 
 bool StateVideo::enterState() {
+	firmware->setFlashInTK(false);
 	std::cout << "Entering Video State." << std::endl;
 
-	//make sure camera has started video capture
-	// cam->setRegCamProp();
-	// cam->stopVideo();
+	//reset tracking, targeter defaults to single SMR tracking, so just need to clear targets
+	cam->clearSMRTargets();
+	if(firmware->is_Spiral()){
+		firmware->StopSearch();
+	}
 	usingCamera = true;
 	cam->stopVideo();
 	//load smart camera calibration data to prepare for SMR tracking
 	if (!cam->loadCalibration())
 		return false;
+	// If iProbe mode is ON and already locked, keep iProbe exposure/gain on state switch
+	if (cam->getIprobeMode() && cam->getIprobeLocked()) {
+		cam->setIprobeCameraProp();
+		cam->video_stream_active = false;
+	} else {
+		cam->setVideoStreamCameraProp();
+		cam->iprobe_stream_active = false;
+	}
 	cam->startVideo();
 	firmware->setPSDLockFlag(true);
+	
+	// firmware->setFlashDuration(40);
 	// firmware->setFlashBrightness(0.95);
 	cam->clearSMRTracking();
 	cam->clearSMRTargets();
@@ -53,12 +66,28 @@ bool StateVideo::stateAction() {
 			cam->setIprobeLocked(false);
 		}
 	}
+	if (cam->getIprobeMode() && cam->getIprobeLocked()) {
+		if(!cam->iprobe_stream_active){
+			cam->stopVideo();
+			cam->setIprobeCameraProp();
+			cam->startVideo();
+		}
+	}
+	else {
+		if(cam->iprobe_stream_active){
+			cam->stopVideo();
+			cam->setVideoStreamCameraProp();
+			cam->startVideo();
+			cam->iprobe_stream_active = false;
+		}
+	}
 	usleep(100000);
 	// updateSMRTracking();
 	return true;
 }
 
 bool StateVideo::leaveState() {
+	firmware->setFlashInTK(false);
 	std::cout << "Leaving Video State." << std::endl;
 	return true;
 }
